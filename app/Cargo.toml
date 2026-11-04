@@ -1,0 +1,33 @@
+[package]
+name = "zmk-keymap-viewer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZMK Keymap Viewer for Windows and Linux"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+zmk-core = { path = "../crates/zmk-core" }
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+notify = "8"
+
+# Raw HID: the live layer. One backend per OS, none of them needs system libraries.
+[target.'cfg(target_os = "windows")'.dependencies]
+hidapi = { version = "2", default-features = false, features = ["windows-native"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_Input_KeyboardAndMouse"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+hidapi = { version = "2", default-features = false, features = ["macos-shared-device"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+hidapi = { version = "2", default-features = false, features = ["linux-native"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

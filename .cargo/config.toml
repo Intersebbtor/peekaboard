@@ -1,0 +1,7 @@
+# Cross-Kompilierung nach Windows mit llvm-mingw (kein Microsoft-SDK noetig).
+# PATH-Setup und Umgebungsvariablen: scripts/build-windows.sh
+[target.aarch64-pc-windows-gnullvm]
+linker = "aarch64-w64-mingw32-clang"
+
+[target.x86_64-pc-windows-gnullvm]
+linker = "x86_64-w64-mingw32-clang"

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZMK Keymap HUD</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="hud-body">
+  <div class="hud" id="hud">
+    <div class="grab"><div class="capsule"></div></div>
+    <div class="hudtabs" id="tabs"></div>
+    <div class="board" id="board"></div>
+    <div class="empty" id="empty" style="display:none">No Keymap Loaded</div>
+    <div class="wpm" id="wpm" style="display:none" title="Typing speed: five key presses make a word, averaged over the last five seconds">
+      <svg viewBox="0 0 54 14"><polyline id="wpm-line" points=""/></svg>
+      <span class="num" id="wpm-num">0</span>
+      <span class="unit">WPM</span>
+    </div>
+  </div>
+  <div class="edge n" data-dir="North"></div>
+  <div class="edge s" data-dir="South"></div>
+  <div class="edge e" data-dir="East"></div>
+  <div class="edge w" data-dir="West"></div>
+  <div class="edge ne" data-dir="NorthEast"></div>
+  <div class="edge nw" data-dir="NorthWest"></div>
+  <div class="edge se" data-dir="SouthEast"></div>
+  <div class="edge sw" data-dir="SouthWest"></div>
+  <script src="bridge.js"></script>
+  <script src="keyboard.js"></script>
+  <script src="hud.js"></script>
+</body>
+</html>
