@@ -12,6 +12,7 @@ use crate::hub::Hub;
 use crate::windows;
 
 const TRAY_ID: &str = "main";
+#[cfg_attr(target_os = "macos", allow(dead_code))] // the badge is for Windows and Linux
 const SIZE: usize = 32;
 
 /// What the tray shows right now, so unchanged states are not redrawn
@@ -48,6 +49,13 @@ pub fn create(hub: &Hub) -> tauri::Result<()> {
                 let _ = &click_hub;
             }
         });
+    // macOS: the Swift app's split keyboard, a template image for the menu bar
+    #[cfg(target_os = "macos")]
+    {
+        let (rgba, w, h) = crate::tray_mac::split_keyboard_icon(None);
+        builder = builder.icon(Image::new_owned(rgba, w, h)).icon_as_template(true);
+    }
+    #[cfg(not(target_os = "macos"))]
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());
     }
@@ -71,6 +79,19 @@ pub fn update(app: &AppHandle, layer: Option<usize>, layer_name: Option<&str>) {
     }
     *shown = Some(layer);
 
+    #[cfg(target_os = "macos")]
+    {
+        // AppKit draws the icon, on the main thread
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if let Some(tray) = handle.tray_by_id(TRAY_ID) {
+                let (rgba, w, h) = crate::tray_mac::split_keyboard_icon(layer);
+                let _ = tray.set_icon(Some(Image::new_owned(rgba, w, h)));
+                let _ = tray.set_icon_as_template(true);
+            }
+        });
+    }
+    #[cfg(not(target_os = "macos"))]
     match layer {
         Some(n) => {
             let _ = tray.set_icon(Some(Image::new_owned(badge(n), SIZE as u32, SIZE as u32)));
@@ -83,6 +104,7 @@ pub fn update(app: &AppHandle, layer: Option<usize>, layer_name: Option<&str>) {
     }
 }
 
+#[cfg_attr(target_os = "macos", allow(dead_code))] // the badge is for Windows and Linux
 /// 3x5 pixel digits
 const DIGITS: [[u8; 5]; 10] = [
     [0b111, 0b101, 0b101, 0b101, 0b111],
@@ -97,6 +119,7 @@ const DIGITS: [[u8; 5]; 10] = [
     [0b111, 0b101, 0b111, 0b001, 0b111],
 ];
 
+#[cfg_attr(target_os = "macos", allow(dead_code))] // the badge is for Windows and Linux
 /// An accent-coloured rounded square with the layer number, readable on
 /// light and dark taskbars alike
 pub fn badge(layer: usize) -> Vec<u8> {
@@ -141,6 +164,7 @@ pub fn badge(layer: usize) -> Vec<u8> {
     rgba
 }
 
+#[cfg_attr(target_os = "macos", allow(dead_code))] // the badge is for Windows and Linux
 fn put(rgba: &mut [u8], x: usize, y: usize, color: [u8; 4]) {
     if x < SIZE && y < SIZE {
         let i = (y * SIZE + x) * 4;

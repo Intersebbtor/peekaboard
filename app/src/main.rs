@@ -6,6 +6,8 @@ mod settings;
 mod state;
 mod sys_layout;
 mod tray;
+#[cfg(target_os = "macos")]
+mod tray_mac;
 mod watch;
 mod windows;
 
