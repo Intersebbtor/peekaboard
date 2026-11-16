@@ -117,8 +117,9 @@ const Store = {
     this._handlers.push(handler);
   },
 
-  _changed(what) {
-    this._handlers.forEach((h) => h(what, this));
+  /** `before`: the previous live payload, so a window can tell what changed */
+  _changed(what, before) {
+    this._handlers.forEach((h) => h(what, before));
   },
 
   /** Counts keymap payloads, so windows can tell a new keymap from a repeat */

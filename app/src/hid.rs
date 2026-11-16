@@ -99,9 +99,11 @@ fn run_simulator(hub: &Hub) {
             )
         };
 
-        // A new layer every ~4 seconds
-        if tick % 18 == 0 {
-            let layer = (tick / 18) as usize % layer_count.max(1);
+        // Bursts of ~2 s typing, then ~6 s pause (so the HUD fades in between),
+        // a new layer with every burst
+        let typing = tick % 36 < 9;
+        if tick % 36 == 0 {
+            let layer = (tick / 36) as usize % layer_count.max(1);
             hub.packet(LayerPacket::LayerState {
                 default_layers: 1,
                 active_layers: 1 | (1u32 << layer),
@@ -111,11 +113,12 @@ fn run_simulator(hub: &Hub) {
         // Press and release keys
         match held.take() {
             Some(position) => hub.packet(LayerPacket::KeyEvent { position, pressed: false }),
-            None => {
+            None if typing => {
                 let position = (tick.wrapping_mul(2654435761) >> 7) as usize % key_count.max(1);
                 held = Some(position);
                 hub.packet(LayerPacket::KeyEvent { position, pressed: true });
             }
+            None => {}
         }
     }
 }
