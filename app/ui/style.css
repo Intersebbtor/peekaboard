@@ -393,6 +393,10 @@ body.hud-body { background: transparent; }
 }
 .hud.inactive { opacity: 0.15 !important; transform: scale(0.98); }
 
+/* macOS: the window carries the HUD material and does the fading */
+body.mac.material .hud { background: color-mix(in srgb, var(--window-bg) 25%, transparent); }
+body.mac .hud.inactive { opacity: 1 !important; }
+
 .hud .grab { align-self: center; width: 120px; height: 16px; display: flex; align-items: center; justify-content: center; flex: none; margin-top: 2px; }
 .hud .capsule { width: 30px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--secondary) 33%, transparent); }
 

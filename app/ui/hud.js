@@ -5,13 +5,30 @@
 const hud = document.getElementById('hud');
 const state = { inactive: false, hovering: false, timer: null, shownHud: false };
 
+// macOS: the window itself fades and resizes (with its native blur);
+// elsewhere the page does it
+const nativeWindow = navigator.userAgent.includes('Mac') && !Bridge.mock;
+if (nativeWindow) document.body.classList.add('mac');
+
 // ---------- Fade ----------
+
+// The window fades natively (see windows::fade_hud); asked once per change
+let requestedAlpha = null;
+function fadeWindowTo(target) {
+  if (requestedAlpha !== null && Math.abs(requestedAlpha - target) < 0.005) return;
+  requestedAlpha = target;
+  Bridge.invoke('fade_hud', { alpha: target });
+}
 
 function applyFade() {
   const live = Store.live;
   const opacity = live ? live.settings.hudOpacity : 0.9;
-  hud.style.opacity = state.inactive ? '' : String(opacity);
   hud.classList.toggle('inactive', state.inactive);
+  if (nativeWindow) {
+    fadeWindowTo(state.inactive ? 0.15 : opacity);
+  } else {
+    hud.style.opacity = state.inactive ? '' : String(opacity);
+  }
 }
 
 function setInactive(value) {
@@ -34,15 +51,24 @@ function wake() {
   state.timer = setTimeout(() => setInactive(true), timeout * 1000);
 }
 
-hud.addEventListener('mouseenter', () => {
-  state.hovering = true;
-  clearTimeout(state.timer);
-  setInactive(false);
-});
-hud.addEventListener('mouseleave', () => {
-  state.hovering = false;
-  wake();
-});
+// Hover comes from the app, which watches the mouse: the page's own
+// mouseleave does not arrive while another app is in front
+function setHovering(inside) {
+  if (inside === state.hovering) return;
+  state.hovering = inside;
+  if (inside) {
+    clearTimeout(state.timer);
+    setInactive(false);
+  } else {
+    wake();
+  }
+}
+if (Bridge.mock) {
+  hud.addEventListener('mouseenter', () => setHovering(true));
+  hud.addEventListener('mouseleave', () => setHovering(false));
+} else {
+  Bridge.listen('hud-hover', (inside) => setHovering(!!inside));
+}
 
 // ---------- Moving and resizing ----------
 
@@ -56,9 +82,46 @@ document.querySelectorAll('.edge').forEach((edge) => {
   edge.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    Bridge.window().startResizeDragging(edge.dataset.dir);
+    if (nativeWindow) resizeByHand(edge.dataset.dir, e);
+    else Bridge.window().startResizeDragging(edge.dataset.dir);
   });
 });
+
+/** macOS can't drag the edges of a borderless window natively: follow the
+ *  mouse and set the frame. Drags keep arriving outside the window. */
+function resizeByHand(dir, down) {
+  const start = { x: window.screenX, y: window.screenY, w: window.innerWidth, h: window.innerHeight };
+  const [minW, minH] = [280, 140];
+  let pending = null;
+  const move = (e) => {
+    const dx = e.screenX - down.screenX;
+    const dy = e.screenY - down.screenY;
+    let { x, y, w, h } = start;
+    if (dir.includes('East')) w = start.w + dx;
+    if (dir.includes('South')) h = start.h + dy;
+    if (dir.includes('West')) {
+      w = Math.max(minW, start.w - dx);
+      x = start.x + (start.w - w);
+    }
+    if (dir.includes('North')) {
+      h = Math.max(minH, start.h - dy);
+      y = start.y + (start.h - h);
+    }
+    w = Math.max(minW, w);
+    h = Math.max(minH, h);
+    if (pending) return;
+    pending = requestAnimationFrame(() => {
+      pending = null;
+      Bridge.invoke('set_hud_frame', { x, y, width: w, height: h });
+    });
+  };
+  const up = () => {
+    window.removeEventListener('mousemove', move, true);
+    window.removeEventListener('mouseup', up, true);
+  };
+  window.addEventListener('mousemove', move, true);
+  window.addEventListener('mouseup', up, true);
+}
 
 // ---------- Drawing ----------
 
@@ -87,27 +150,40 @@ function renderAll() {
 
   if (!keymap) {
     tabs.innerHTML = '';
+    delete tabs.dataset.drawn;
+    delete board.dataset.drawn;
     board.style.display = 'none';
     empty.style.display = '';
   } else {
     empty.style.display = 'none';
     board.style.display = '';
-    tabs.innerHTML = '';
-    keymap.layers.forEach((layer, index) => {
-      const b = document.createElement('button');
-      b.className = 'chip-tab' + (index === selected ? ' selected' : '');
-      b.textContent = layer.name;
-      b.onclick = () => Bridge.invoke('select_layer', { index });
-      tabs.appendChild(b);
-    });
+    // Redrawn only when they change: a redraw under the mouse swallows the click
+    const tabsKey = `${Store.keymapVersion}:${selected}`;
+    if (tabs.dataset.drawn !== tabsKey) {
+      tabs.dataset.drawn = tabsKey;
+      tabs.innerHTML = '';
+      keymap.layers.forEach((layer, index) => {
+        const b = document.createElement('button');
+        b.className = 'chip-tab' + (index === selected ? ' selected' : '');
+        b.textContent = layer.name;
+        b.onclick = () => Bridge.invoke('select_layer', { index });
+        tabs.appendChild(b);
+      });
+    }
 
-    board.innerHTML = '';
-    const current = keymap.layers[selected];
-    if (current) {
-      board.appendChild(KeyboardView.render(current, keymap.layout, { pressed: new Set(live.pressed) }));
-      fitBoard();
+    const boardKey = `${tabsKey}:${live.pressed.join(',')}`;
+    if (board.dataset.drawn !== boardKey) {
+      board.dataset.drawn = boardKey;
+      board.innerHTML = '';
+      const current = keymap.layers[selected];
+      if (current) {
+        board.appendChild(KeyboardView.render(current, keymap.layout, { pressed: new Set(live.pressed) }));
+        fitBoard();
+      }
     }
   }
+
+  document.body.classList.toggle('material', !!live.settings.hudUseMaterial);
 
   // Typing speed in the corner
   const wpm = document.getElementById('wpm');

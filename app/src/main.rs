@@ -30,6 +30,7 @@ fn get_state(hub: State<'_, Hub>) -> Value {
 
 #[tauri::command]
 fn select_layer(hub: State<'_, Hub>, index: usize) {
+    eprintln!("[UI] Layer {index} selected");
     hub.lock().select_layer(index);
     hub.emit_live();
 }
@@ -87,6 +88,9 @@ fn set_setting(hub: State<'_, Hub>, key: String, value: Value) -> Result<(), Str
         if key == "followLiveLayer" && value == Value::Bool(true) {
             s.sync_to_live_layer();
         }
+        if key == "hudUseMaterial" {
+            windows::set_hud_material(&hub.app, s.settings.hud_use_material);
+        }
         s.save_settings();
     }
     hub.emit_live();
@@ -115,6 +119,18 @@ fn set_shortcut(hub: State<'_, Hub>, accelerator: String) -> Result<(), String> 
 #[tauri::command]
 fn toggle_hud(hub: State<'_, Hub>) {
     hub.toggle_hud();
+}
+
+/// macOS: fades the HUD window to this transparency (see windows::fade_hud)
+#[tauri::command]
+fn fade_hud(app: AppHandle, alpha: f64) {
+    windows::fade_hud(&app, alpha);
+}
+
+/// macOS: resizing from the HUD's edges, driven by the page
+#[tauri::command]
+fn set_hud_frame(app: AppHandle, x: f64, y: f64, width: f64, height: f64) {
+    windows::set_hud_frame(&app, x, y, width, height);
 }
 
 #[tauri::command]
@@ -160,7 +176,10 @@ fn main() {
     // Optional: a keymap file to open right away (also what "Open with" passes)
     let file_arg = args.iter().skip(1).find(|a| a.ends_with(".keymap")).cloned();
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -173,6 +192,8 @@ fn main() {
             set_key_name,
             set_shortcut,
             toggle_hud,
+            fade_hud,
+            set_hud_frame,
             open_in_editor,
             hide_main,
             quit,
@@ -184,6 +205,7 @@ fn main() {
             let shortcut = settings.shortcut.clone();
             let hud_enabled = settings.hud_enabled || start_with_hud;
             let geometry = settings.hud_geometry;
+            let use_material = settings.hud_use_material;
             let most_recent = settings.recent_keymaps.first().cloned();
 
             let state = Arc::new(Mutex::new(Inner::new(settings, path)));
@@ -197,11 +219,19 @@ fn main() {
             }
 
             windows::create_main(app.handle())?;
-            let hud = windows::create_hud(&hub, geometry)?;
+            windows::create_hud(&hub, geometry, use_material)?;
+            windows::spawn_hud_hover_watch(app.handle());
             if hud_enabled {
-                let _ = hud.show();
+                hub.lock().settings.hud_enabled = true;
+                windows::set_hud_visible(app.handle(), true);
             }
             tray::create(&hub)?;
+
+            // A menu bar app like the Swift one: no Dock icon, no Cmd-Tab
+            // entry. Only once the windows exist: set before, the web views
+            // of the windows stay blank.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             if let Err(e) = hub.register_shortcut(&shortcut) {
                 eprintln!("[Shortcut] {e}");

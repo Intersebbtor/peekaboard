@@ -24,6 +24,11 @@ windows-sys = { version = "0.59", features = ["Win32_UI_Input_KeyboardAndMouse"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 hidapi = { version = "2", default-features = false, features = ["macos-shared-device"] }
+# The HUD as a non-activating NSPanel, like the Swift app's FloatingPanel
+tauri-nspanel = "2.1"
+# Rounded corners for the whole HUD window (its content view's layer)
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 hidapi = { version = "2", default-features = false, features = ["linux-native"] }

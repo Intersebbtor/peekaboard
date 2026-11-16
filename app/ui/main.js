@@ -30,6 +30,8 @@ function fileName(path) {
 
 /** Long paths shortened in the middle, like the Swift app's truncation */
 function shortenPath(path) {
+  const home = Store.keymap && Store.keymap.homeDir;
+  if (home && (path === home || path.startsWith(home + '/') || path.startsWith(home + '\\'))) path = '~' + path.slice(home.length);
   return path.length > 72 ? path.slice(0, 30) + '…' + path.slice(-40) : path;
 }
 
@@ -263,6 +265,7 @@ function buildSettings(content) {
             <input type="range" min="0" max="10" step="0.5" data-slider="hudTimeout">
           </div>
         </div>
+        ${navigator.userAgent.includes('Mac') ? '<label class="toggle"><input type="checkbox" data-setting="hudUseMaterial"> Use Background Blur (Material)</label>' : ''}
         <label class="toggle"><input type="checkbox" data-setting="showWpmInHud"> Show typing speed (WPM) in the HUD</label>
       </section>
     </div>`;

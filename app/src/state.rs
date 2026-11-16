@@ -44,6 +44,8 @@ pub struct KeymapPayload {
     pub error: Option<String>,
     pub recent_keymaps: Vec<String>,
     pub key_names: std::collections::BTreeMap<String, String>,
+    /// To show paths in the home folder as ~ (like the Swift app)
+    pub home_dir: Option<String>,
 }
 
 /// Everything that changes while typing
@@ -267,6 +269,7 @@ impl Inner {
             error: self.error.clone(),
             recent_keymaps: self.settings.recent_keymaps.clone(),
             key_names: self.settings.key_names.clone(),
+            home_dir: std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).ok(),
         }
     }
 

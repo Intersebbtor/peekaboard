@@ -19,6 +19,8 @@ pub struct HudGeometry {
 pub struct Settings {
     pub hud_enabled: bool,
     pub hud_opacity: f64,
+    /// macOS: the blurred material behind the HUD, else a plain background
+    pub hud_use_material: bool,
     /// Seconds until the HUD fades, 0 = never
     pub hud_timeout: f64,
     /// Typing speed in the HUD's corner, like ZMK's nice!view widget
@@ -39,6 +41,7 @@ impl Default for Settings {
         Settings {
             hud_enabled: false,
             hud_opacity: 0.9,
+            hud_use_material: true,
             hud_timeout: 3.0,
             show_wpm_in_hud: true,
             follow_live_layer: true,

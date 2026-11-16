@@ -72,13 +72,13 @@ impl Hub {
     // MARK: - HUD
 
     pub fn toggle_hud(&self) {
-        let visible = windows::hud_visible(&self.app);
-        windows::set_hud_visible(&self.app, !visible);
-        {
+        let visible = {
             let mut s = self.lock();
-            s.settings.hud_enabled = !visible;
+            s.settings.hud_enabled = !s.settings.hud_enabled;
             s.save_settings();
-        }
+            s.settings.hud_enabled
+        };
+        windows::set_hud_visible(&self.app, visible);
         self.emit_live();
     }
 
