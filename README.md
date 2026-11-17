@@ -61,7 +61,8 @@ scripts/build-windows.sh arm64    # Windows on ARM (e.g. UTM on Apple Silicon)
 scripts/build-windows.sh x64      # normal Windows PC
 ```
 
-The exe lands in `dist/`. It needs the WebView2 runtime, which Windows 11 has built in.
+The exe and `WebView2Loader.dll` land in `dist/windows-<arch>/`; keep the two together.
+It needs the WebView2 runtime, which Windows 11 has built in.
 
 ## Layout
 
