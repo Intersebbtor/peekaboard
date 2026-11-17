@@ -591,13 +591,67 @@ fn parse_modified_key(key: &str) -> String {
     format!("{}+{}", modifiers.join("+"), base)
 }
 
+/// How modifiers are written: the Mac symbols, or the names Windows and
+/// Linux keyboards print on their keys
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModifierStyle {
+    /// ⇧ ⌃ ⌥ ⌘, like the Swift app
+    Mac,
+    /// ⇧ Ctrl Alt Win
+    Windows,
+    /// ⇧ Ctrl Alt Super
+    Linux,
+}
+
+impl ModifierStyle {
+    /// The style of the system this runs on
+    pub fn native() -> Self {
+        if cfg!(windows) {
+            ModifierStyle::Windows
+        } else if cfg!(target_os = "macos") {
+            ModifierStyle::Mac
+        } else {
+            ModifierStyle::Linux
+        }
+    }
+}
+
+static MODIFIER_STYLE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// Sets how keymaps parsed from now on write their modifiers (Mac by default)
+pub fn set_modifier_style(style: ModifierStyle) {
+    let value = match style {
+        ModifierStyle::Mac => 0,
+        ModifierStyle::Windows => 1,
+        ModifierStyle::Linux => 2,
+    };
+    MODIFIER_STYLE.store(value, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn modifier_style() -> ModifierStyle {
+    match MODIFIER_STYLE.load(std::sync::atomic::Ordering::Relaxed) {
+        1 => ModifierStyle::Windows,
+        2 => ModifierStyle::Linux,
+        _ => ModifierStyle::Mac,
+    }
+}
+
 fn format_modifier(modifier: &str) -> String {
-    let symbol = match modifier.to_uppercase().as_str() {
-        "LEFT_SHIFT" | "LSHIFT" | "LSHFT" | "LS" | "RIGHT_SHIFT" | "RSHIFT" | "RSHFT" | "RS" => "⇧",
-        "LEFT_CONTROL" | "LCTRL" | "LC" | "RIGHT_CONTROL" | "RCTRL" | "RC" => "⌃",
-        "LEFT_ALT" | "LALT" | "LA" | "RIGHT_ALT" | "RALT" | "RA" => "⌥",
-        "LEFT_GUI" | "LGUI" | "LG" | "RIGHT_GUI" | "RGUI" | "RG" => "⌘",
-        "LEFT_META" | "LMETA" | "RIGHT_META" | "RMETA" => "◆",
+    format_modifier_in(modifier, modifier_style())
+}
+
+fn format_modifier_in(modifier: &str, style: ModifierStyle) -> String {
+    use ModifierStyle::*;
+    let symbol = match (modifier.to_uppercase().as_str(), style) {
+        ("LEFT_SHIFT" | "LSHIFT" | "LSHFT" | "LS" | "RIGHT_SHIFT" | "RSHIFT" | "RSHFT" | "RS", _) => "⇧",
+        ("LEFT_CONTROL" | "LCTRL" | "LC" | "RIGHT_CONTROL" | "RCTRL" | "RC", Mac) => "⌃",
+        ("LEFT_CONTROL" | "LCTRL" | "LC" | "RIGHT_CONTROL" | "RCTRL" | "RC", _) => "Ctrl",
+        ("LEFT_ALT" | "LALT" | "LA" | "RIGHT_ALT" | "RALT" | "RA", Mac) => "⌥",
+        ("LEFT_ALT" | "LALT" | "LA" | "RIGHT_ALT" | "RALT" | "RA", _) => "Alt",
+        ("LEFT_GUI" | "LGUI" | "LG" | "RIGHT_GUI" | "RGUI" | "RG", Mac) => "⌘",
+        ("LEFT_GUI" | "LGUI" | "LG" | "RIGHT_GUI" | "RGUI" | "RG", Windows) => "Win",
+        ("LEFT_GUI" | "LGUI" | "LG" | "RIGHT_GUI" | "RGUI" | "RG", Linux) => "Super",
+        ("LEFT_META" | "LMETA" | "RIGHT_META" | "RMETA", _) => "◆",
         _ => return modifier.to_string(),
     };
     symbol.to_string()
@@ -624,6 +678,17 @@ mod tests {
     /// One layer without a label
     fn one_layer(bindings: &str) -> String {
         keymap(&format!("default_layer {{ bindings = < {bindings} >; }};"))
+    }
+
+    #[test]
+    fn modifiers_follow_the_system_style() {
+        assert_eq!(format_modifier_in("LG", ModifierStyle::Mac), "⌘");
+        assert_eq!(format_modifier_in("LGUI", ModifierStyle::Windows), "Win");
+        assert_eq!(format_modifier_in("RG", ModifierStyle::Linux), "Super");
+        assert_eq!(format_modifier_in("LC", ModifierStyle::Windows), "Ctrl");
+        assert_eq!(format_modifier_in("RALT", ModifierStyle::Linux), "Alt");
+        assert_eq!(format_modifier_in("LS", ModifierStyle::Windows), "⇧");
+        assert_eq!(format_modifier_in("LA", ModifierStyle::Mac), "⌥");
     }
 
     fn display(input: &str) -> Vec<String> {

@@ -226,6 +226,7 @@ fn main() {
             app.manage(hub.clone());
 
             // Labels show what the keys type, from the first parse on
+            zmk_core::set_modifier_style(zmk_core::ModifierStyle::native());
             sys_layout::load_system_layout();
             if let Some(file) = file_arg.or(most_recent) {
                 hub.lock().load_path(&file);

@@ -22,6 +22,7 @@ const KeyboardView = (() => {
   }
 
   const charCount = (text) => Array.from(text).length;
+  const IS_MAC = navigator.userAgent.includes('Mac');
 
   /** The label as shown: a long name wraps after its first word */
   function labelOf(binding) {
@@ -30,6 +31,9 @@ const KeyboardView = (() => {
       const space = text.indexOf(' ');
       if (space !== -1 && space <= 10) return text.slice(0, space) + '\n' + text.slice(space + 1);
     }
+    // Windows and Linux write modifiers as words (Ctrl+Alt+Win+C): long
+    // combos may wrap after a +. The Mac keeps the Swift app's look.
+    if (!IS_MAC && charCount(text) > 6) return text.replaceAll('+', '+\u200B');
     return text;
   }
 

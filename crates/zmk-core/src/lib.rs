@@ -10,5 +10,5 @@ pub mod wpm;
 pub use key_chars::{Combo, KeyCharacters};
 pub use layout::KeyboardLayout;
 pub use live::{highest_layer, LayerPacket, LayerSelection};
-pub use parser::{load_keymap, parse, parse_bindings, KeyBinding, Keymap, KeymapLayer};
+pub use parser::{load_keymap, parse, parse_bindings, set_modifier_style, KeyBinding, Keymap, KeymapLayer, ModifierStyle};
 pub use wpm::WpmMeter;
