@@ -375,7 +375,8 @@ button {
 
 /* ---------- HUD ---------- */
 
-body.hud-body { background: transparent; }
+/* The page itself stays clear, only the rounded panel draws */
+html.hud-page, body.hud-body { background: transparent; }
 
 .hud {
   position: fixed;

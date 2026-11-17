@@ -179,6 +179,10 @@ fn open_with_default_app(path: &str) {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--hid-check") {
+        hid::check();
+        return;
+    }
     let simulate = args.iter().any(|a| a == "--simulate") || std::env::var("ZMK_SIMULATE").is_ok();
     let start_with_hud = args.iter().any(|a| a == "--hud");
     // Optional: a keymap file to open right away (also what "Open with" passes)

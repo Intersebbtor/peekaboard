@@ -13,6 +13,67 @@ use zmk_core::LayerPacket;
 
 use crate::hub::Hub;
 
+/// `--hid-check`: lists every HID device the system shows, then listens to the
+/// live-layer device for ten seconds. Prints to stdout, for finding out why a
+/// keyboard is not picked up (on Windows: pipe it, e.g. `| Out-String`).
+pub fn check() {
+    let api = match HidApi::new() {
+        Ok(api) => api,
+        Err(e) => {
+            println!("HID is not available: {e}");
+            return;
+        }
+    };
+    println!("HID devices (looking for usage page {USAGE_PAGE:#06x}, usage {USAGE:#04x}):");
+    for d in api.device_list() {
+        let marker = if d.usage_page() == USAGE_PAGE && d.usage() == USAGE { "  <-- live layer" } else { "" };
+        println!(
+            "  {:04x}:{:04x}  page {:#06x} usage {:#04x}  interface {:>2}  {:?} / {:?}{marker}",
+            d.vendor_id(),
+            d.product_id(),
+            d.usage_page(),
+            d.usage(),
+            d.interface_number(),
+            d.manufacturer_string().unwrap_or(""),
+            d.product_string().unwrap_or(""),
+        );
+    }
+    // Over USB and Bluetooth at once the keyboard shows up twice: listen to all
+    let mut devices = Vec::new();
+    for info in api.device_list().filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE) {
+        let via = if info.interface_number() >= 0 { "USB" } else { "Bluetooth" };
+        match info.open_device(&api) {
+            Ok(device) => {
+                println!("Opened the {via} one: {:?}", info.path());
+                devices.push((via, device));
+            }
+            Err(e) => println!("Could not open the {via} one ({:?}): {e}", info.path()),
+        }
+    }
+    if devices.is_empty() {
+        println!("No live-layer device to listen to.");
+        return;
+    }
+    println!("Listening for 10 s, press keys and change layers:");
+    let start = std::time::Instant::now();
+    let mut buffer = [0u8; 64];
+    let mut packets = 0;
+    while start.elapsed() < Duration::from_secs(10) {
+        for (via, device) in &devices {
+            match device.read_timeout(&mut buffer, 50) {
+                Ok(0) => {}
+                Ok(length) => {
+                    packets += 1;
+                    let decoded = LayerPacket::decode(&buffer[..length]);
+                    println!("  {via}: {length} bytes {:02x?} -> {decoded:?}", &buffer[..length.min(8)]);
+                }
+                Err(e) => println!("  {via}: read failed: {e}"),
+            }
+        }
+    }
+    println!("{packets} packets in 10 s.");
+}
+
 pub fn spawn(hub: Hub, simulate: bool) {
     std::thread::spawn(move || {
         if simulate {
@@ -38,22 +99,30 @@ fn run_hid(hub: &Hub) {
             eprintln!("[LiveLayer] Could not list devices: {e}");
         }
 
-        let candidate = api
-            .device_list()
-            .find(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE)
-            .map(|d| {
-                let name = d.product_string().unwrap_or("Keyboard").to_string();
-                (name, d.open_device(&api))
-            });
+        // With a cable in while Bluetooth is connected, the keyboard shows up
+        // twice and talks over only one of them: listen to every match
+        let mut name = None;
+        let mut devices = Vec::new();
+        for info in api.device_list().filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE) {
+            let product = info.product_string().unwrap_or("Keyboard").to_string();
+            match info.open_device(&api) {
+                Ok(device) => {
+                    name.get_or_insert(product);
+                    devices.push(device);
+                }
+                Err(e) => eprintln!("[LiveLayer] Could not open {product}: {e}"),
+            }
+        }
 
-        match candidate {
-            Some((name, Ok(device))) => {
-                eprintln!("[LiveLayer] Connected: {name}");
-                hub.keyboard_connected(name);
+        if let Some(name) = name {
+            eprintln!("[LiveLayer] Connected: {name} ({} interface(s))", devices.len());
+            hub.keyboard_connected(name);
 
-                let mut buffer = [0u8; 64];
-                loop {
-                    match device.read_timeout(&mut buffer, 250) {
+            let mut buffer = [0u8; 64];
+            let timeout = (250 / devices.len()).max(20) as i32;
+            'read: loop {
+                for device in &devices {
+                    match device.read_timeout(&mut buffer, timeout) {
                         Ok(0) => {}
                         Ok(length) => {
                             if let Some(packet) = LayerPacket::decode(&buffer[..length]) {
@@ -61,24 +130,23 @@ fn run_hid(hub: &Hub) {
                             }
                         }
                         Err(e) => {
+                            // One of them gone (cable out, Bluetooth off):
+                            // look again, the other may still be there
                             eprintln!("[LiveLayer] Read failed: {e}");
-                            break;
+                            break 'read;
                         }
                     }
                 }
-
-                eprintln!("[LiveLayer] Disconnected");
-                hub.keyboard_disconnected();
             }
-            Some((name, Err(e))) => eprintln!("[LiveLayer] Could not open {name}: {e}"),
-            None => {}
+
+            eprintln!("[LiveLayer] Disconnected");
+            hub.keyboard_disconnected();
         }
 
         std::thread::sleep(Duration::from_secs(1));
     }
 }
 
-/// A keyboard that changes layers and types a little
 fn run_simulator(hub: &Hub) {
     eprintln!("[LiveLayer] Simulating a keyboard");
     std::thread::sleep(Duration::from_millis(800));
