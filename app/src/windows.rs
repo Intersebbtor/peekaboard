@@ -320,6 +320,19 @@ pub fn spawn_hud_hover_watch(app: &AppHandle) {
     });
 }
 
+/// Keeps the main window at least this big, so the keyboard fits without
+/// scrolling; a smaller window grows to it
+pub fn set_main_min_size(app: &AppHandle, width: f64, height: f64) {
+    let Some(w) = app.get_webview_window("main") else { return };
+    let _ = w.set_min_size(Some(LogicalSize::new(width, height)));
+    if let (Ok(size), Ok(scale)) = (w.inner_size(), w.scale_factor()) {
+        let size = size.to_logical::<f64>(scale);
+        if size.width < width || size.height < height {
+            let _ = w.set_size(LogicalSize::new(size.width.max(width), size.height.max(height)));
+        }
+    }
+}
+
 /// Moves and resizes the HUD in one go (macOS has no native edge dragging for
 /// borderless windows, so the page drives it)
 pub fn set_hud_frame(app: &AppHandle, x: f64, y: f64, width: f64, height: f64) {

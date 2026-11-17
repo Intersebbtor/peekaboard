@@ -466,9 +466,31 @@ document.addEventListener('click', () => {
   }
 });
 
+// The window never gets smaller than the keyboard, like the Swift window's
+// minWidth/minHeight (ContentView.calculateOptimalWidth/Height)
+let minSize = null;
+function fitWindowToKeyboard() {
+  const keymap = Store.keymap && Store.keymap.keymap;
+  if (!keymap || Bridge.mock) return;
+  const layout = keymap.layout;
+  const maxKeys = Math.max(0, ...layout.keysPerRow) || 10;
+  const first = layout.keysPerRow[0];
+  const keyWidth = first !== undefined && first > 10 ? 48 : 54;
+  const width = Math.max(700, maxKeys * keyWidth + (maxKeys - 1) * 3 + (layout.isSplit ? 30 : 0) + 40);
+  const tabRows = Math.ceil(Math.max(1, keymap.layers.length) / 6);
+  const tabs = 16 + tabRows * 26 + (tabRows - 1) * 4;
+  const rows = layout.rowCount;
+  const height = Math.max(320, 100 + tabs + rows * 44 + (rows - 1) * 3 + (layout.hasThumbCluster ? 20 : 0) + 40 + 50);
+  const key = `${width}x${height}`;
+  if (key === minSize) return;
+  minSize = key;
+  Bridge.invoke('set_main_min_size', { width, height });
+}
+
 Store.onChange(() => {
   if (!Store.keymap || !Store.live) return;
   renderAll();
+  fitWindowToKeyboard();
 });
 
 // A .keymap file dropped on the window loads

@@ -135,6 +135,12 @@ fn set_hud_frame(app: AppHandle, x: f64, y: f64, width: f64, height: f64) {
     windows::set_hud_frame(&app, x, y, width, height);
 }
 
+/// The main window's minimum size, from the keyboard on display
+#[tauri::command]
+fn set_main_min_size(app: AppHandle, width: f64, height: f64) {
+    windows::set_main_min_size(&app, width, height);
+}
+
 #[tauri::command]
 fn open_in_editor(hub: State<'_, Hub>) {
     let Some(path) = hub.lock().file_path.clone() else { return };
@@ -196,6 +202,7 @@ fn main() {
             toggle_hud,
             fade_hud,
             set_hud_frame,
+            set_main_min_size,
             open_in_editor,
             hide_main,
             quit,
