@@ -56,6 +56,13 @@ cargo test --workspace            # core + app tests
 cargo run -p zmk-keymap-viewer    # run on this machine
 ```
 
+CI runs these on every push and pull request (Windows, Linux, macOS). Run them before you open a PR:
+
+```
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
 **Windows exe from a Mac** (no Microsoft SDK needed, uses
 [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `~/toolchains/llvm-mingw`):
 
