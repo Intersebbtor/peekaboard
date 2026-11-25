@@ -22,7 +22,9 @@ pub fn load_system_layout() {
     unsafe {
         let layout = GetKeyboardLayout(0);
         for usage in KeyCharacters::typing_usages() {
-            let Some(scancode) = scancode_for(usage) else { continue };
+            let Some(scancode) = scancode_for(usage) else {
+                continue;
+            };
             let vk = MapVirtualKeyExW(scancode, MAPVK_VSC_TO_VK_EX, layout);
             if vk == 0 {
                 continue;
@@ -34,12 +36,27 @@ pub fn load_system_layout() {
                 }
                 let mut buffer = [0u16; 8];
                 // Flag 4: leave the keyboard's dead-key state alone
-                let length = ToUnicodeEx(vk, scancode, keys.as_ptr(), buffer.as_mut_ptr(), buffer.len() as i32, 4, layout);
+                let length = ToUnicodeEx(
+                    vk,
+                    scancode,
+                    keys.as_ptr(),
+                    buffer.as_mut_ptr(),
+                    buffer.len() as i32,
+                    4,
+                    layout,
+                );
                 // length < 0: a dead key, the buffer holds its own mark
                 let count = if length < 0 { 1 } else { length as usize };
                 if count > 0 {
                     let typed = String::from_utf16_lossy(&buffer[..count]);
-                    table.insert(Combo { usage, shift, option: false }, typed);
+                    table.insert(
+                        Combo {
+                            usage,
+                            shift,
+                            option: false,
+                        },
+                        typed,
+                    );
                 }
             }
         }
@@ -52,11 +69,32 @@ pub fn load_system_layout() {
 fn scancode_for(usage: u16) -> Option<u32> {
     let code = match usage {
         // Letters A..Z
-        0x04 => 0x1E, 0x05 => 0x30, 0x06 => 0x2E, 0x07 => 0x20, 0x08 => 0x12, 0x09 => 0x21,
-        0x0A => 0x22, 0x0B => 0x23, 0x0C => 0x17, 0x0D => 0x24, 0x0E => 0x25, 0x0F => 0x26,
-        0x10 => 0x32, 0x11 => 0x31, 0x12 => 0x18, 0x13 => 0x19, 0x14 => 0x10, 0x15 => 0x13,
-        0x16 => 0x1F, 0x17 => 0x14, 0x18 => 0x16, 0x19 => 0x2F, 0x1A => 0x11, 0x1B => 0x2D,
-        0x1C => 0x15, 0x1D => 0x2C,
+        0x04 => 0x1E,
+        0x05 => 0x30,
+        0x06 => 0x2E,
+        0x07 => 0x20,
+        0x08 => 0x12,
+        0x09 => 0x21,
+        0x0A => 0x22,
+        0x0B => 0x23,
+        0x0C => 0x17,
+        0x0D => 0x24,
+        0x0E => 0x25,
+        0x0F => 0x26,
+        0x10 => 0x32,
+        0x11 => 0x31,
+        0x12 => 0x18,
+        0x13 => 0x19,
+        0x14 => 0x10,
+        0x15 => 0x13,
+        0x16 => 0x1F,
+        0x17 => 0x14,
+        0x18 => 0x16,
+        0x19 => 0x2F,
+        0x1A => 0x11,
+        0x1B => 0x2D,
+        0x1C => 0x15,
+        0x1D => 0x2C,
         // Digits 1..9, 0
         0x1E..=0x27 => 0x02 + (usage - 0x1E) as u32,
         0x2D => 0x0C, // MINUS

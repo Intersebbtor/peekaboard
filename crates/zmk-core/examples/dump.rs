@@ -9,7 +9,10 @@ fn main() {
         std::process::exit(1)
     });
     if summary {
-        println!("{} | {} keys | rows {:?} | split {}", km.layout.name, km.layout.total_keys, km.layout.keys_per_row, km.layout.is_split);
+        println!(
+            "{} | {} keys | rows {:?} | split {}",
+            km.layout.name, km.layout.total_keys, km.layout.keys_per_row, km.layout.is_split
+        );
         for (i, l) in km.layers.iter().enumerate() {
             println!("L{i} {:?}", l.name);
             let mut row = usize::MAX;

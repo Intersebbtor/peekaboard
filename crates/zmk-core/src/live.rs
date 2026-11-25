@@ -17,7 +17,10 @@ pub const STUDIO_MARKER: u8 = 0xF2;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerPacket {
     /// Bitmasks of the default and the currently active layers (bit N = layer N)
-    LayerState { default_layers: u32, active_layers: u32 },
+    LayerState {
+        default_layers: u32,
+        active_layers: u32,
+    },
     /// The key at `position` was pressed or released
     KeyEvent { position: usize, pressed: bool },
     /// A chunk of the ZMK Studio RPC stream
@@ -134,7 +137,10 @@ mod tests {
         let bytes = report(&[0xFF, 0x04, 0x01, 0, 0, 0, 0x05, 0, 0, 0]);
         assert_eq!(
             LayerPacket::decode(&bytes),
-            Some(LayerPacket::LayerState { default_layers: 0x1, active_layers: 0x5 })
+            Some(LayerPacket::LayerState {
+                default_layers: 0x1,
+                active_layers: 0x5
+            })
         );
     }
 
@@ -143,7 +149,10 @@ mod tests {
         let bytes = report(&[0xFF, 0x04, 0x01, 0, 0, 0, 0x01, 0x01, 0x00, 0x80]);
         assert_eq!(
             LayerPacket::decode(&bytes),
-            Some(LayerPacket::LayerState { default_layers: 0x1, active_layers: 0x8000_0101 })
+            Some(LayerPacket::LayerState {
+                default_layers: 0x1,
+                active_layers: 0x8000_0101
+            })
         );
     }
 
@@ -151,11 +160,17 @@ mod tests {
     fn decode_key_event() {
         assert_eq!(
             LayerPacket::decode(&report(&[0xF1, 0x00, 14, 1])),
-            Some(LayerPacket::KeyEvent { position: 14, pressed: true })
+            Some(LayerPacket::KeyEvent {
+                position: 14,
+                pressed: true
+            })
         );
         assert_eq!(
             LayerPacket::decode(&report(&[0xF1, 0x00, 14, 0])),
-            Some(LayerPacket::KeyEvent { position: 14, pressed: false })
+            Some(LayerPacket::KeyEvent {
+                position: 14,
+                pressed: false
+            })
         );
     }
 
@@ -175,7 +190,10 @@ mod tests {
     #[test]
     fn ignores_truncated_packets() {
         assert_eq!(LayerPacket::decode(&[]), None);
-        assert_eq!(LayerPacket::decode(&[0xFF, 0x04, 0x01, 0, 0, 0, 0x05]), None);
+        assert_eq!(
+            LayerPacket::decode(&[0xFF, 0x04, 0x01, 0, 0, 0, 0x05]),
+            None
+        );
         assert_eq!(LayerPacket::decode(&[0xF1, 0x00, 14]), None);
     }
 

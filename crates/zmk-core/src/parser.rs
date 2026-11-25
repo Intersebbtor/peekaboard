@@ -68,9 +68,8 @@ static LAYER_LABEL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"(?:label|display-name)\s*=\s*"([^"]*)""#).unwrap());
 static FIRST_BINDINGS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?s)bindings\s*=\s*<(.*?)>").unwrap());
-static MODIFIED_KEY: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(L[SCAG]|R[SCAG]|LC|RC|LA|RA|LG|RG|LS|RS)\((.+)\)").unwrap()
-});
+static MODIFIED_KEY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(L[SCAG]|R[SCAG]|LC|RC|LA|RA|LG|RG|LS|RS)\((.+)\)").unwrap());
 
 /// Spaces and tabs, like Foundation's `.whitespaces`
 fn trim_ws(s: &str) -> &str {
@@ -485,15 +484,11 @@ fn parse_display_text(raw_code: &str) -> String {
         "studio_unlock" => return "STUDIO".to_string(),
         _ => {
             // Custom behaviors like long_MT, short_LT
-            if behavior.contains("MT") || behavior.contains("mt") {
-                if parts.len() > 2 {
-                    return format!("{}\n{}", format_modifier(parts[1]), format_key(parts[2]));
-                }
+            if (behavior.contains("MT") || behavior.contains("mt")) && parts.len() > 2 {
+                return format!("{}\n{}", format_modifier(parts[1]), format_key(parts[2]));
             }
-            if behavior.contains("LT") || behavior.contains("lt") {
-                if parts.len() > 2 {
-                    return format!("L{}\n{}", parts[1], format_key(parts[2]));
-                }
+            if (behavior.contains("LT") || behavior.contains("lt")) && parts.len() > 2 {
+                return format!("L{}\n{}", parts[1], format_key(parts[2]));
             }
             // Macros and other custom behaviors
             if parts.len() == 1 {
@@ -508,45 +503,95 @@ fn parse_display_text(raw_code: &str) -> String {
 }
 
 const SPECIAL_KEYS: &[(&str, &str)] = &[
-    ("BACKSPACE", "⌫"), ("BSPC", "⌫"),
-    ("SPACE", "␣"), ("SPC", "␣"),
+    ("BACKSPACE", "⌫"),
+    ("BSPC", "⌫"),
+    ("SPACE", "␣"),
+    ("SPC", "␣"),
     ("TAB", "⇥"),
-    ("RETURN", "⏎"), ("RET", "⏎"), ("ENTER", "⏎"),
-    ("ESCAPE", "ESC"), ("ESC", "ESC"),
-    ("DELETE", "DEL"), ("DEL", "DEL"),
-    ("LEFT", "←"), ("RIGHT", "→"), ("UP", "↑"), ("DOWN", "↓"),
-    ("SEMICOLON", ";"), ("SEMI", ";"),
+    ("RETURN", "⏎"),
+    ("RET", "⏎"),
+    ("ENTER", "⏎"),
+    ("ESCAPE", "ESC"),
+    ("ESC", "ESC"),
+    ("DELETE", "DEL"),
+    ("DEL", "DEL"),
+    ("LEFT", "←"),
+    ("RIGHT", "→"),
+    ("UP", "↑"),
+    ("DOWN", "↓"),
+    ("SEMICOLON", ";"),
+    ("SEMI", ";"),
     ("COMMA", ","),
-    ("DOT", "."), ("PERIOD", "."),
-    ("SLASH", "/"), ("FSLH", "/"),
-    ("BACKSLASH", "\\"), ("BSLH", "\\"),
-    ("MINUS", "-"), ("EQUAL", "="), ("PLUS", "+"),
-    ("LBKT", "["), ("LEFT_BRACKET", "["),
-    ("RBKT", "]"), ("RIGHT_BRACKET", "]"),
-    ("LBRC", "{"), ("RBRC", "}"),
-    ("LPAR", "("), ("RPAR", ")"),
-    ("SQT", "'"), ("SINGLE_QUOTE", "'"),
-    ("DQT", "\""), ("DOUBLE_QUOTES", "\""),
-    ("GRAVE", "`"), ("TILDE", "~"),
-    ("EXCLAMATION", "!"), ("EXCL", "!"),
-    ("AT_SIGN", "@"), ("AT", "@"),
-    ("HASH", "#"), ("POUND", "#"),
-    ("DLLR", "$"), ("DOLLAR", "$"),
-    ("PRCNT", "%"), ("PERCENT", "%"),
+    ("DOT", "."),
+    ("PERIOD", "."),
+    ("SLASH", "/"),
+    ("FSLH", "/"),
+    ("BACKSLASH", "\\"),
+    ("BSLH", "\\"),
+    ("MINUS", "-"),
+    ("EQUAL", "="),
+    ("PLUS", "+"),
+    ("LBKT", "["),
+    ("LEFT_BRACKET", "["),
+    ("RBKT", "]"),
+    ("RIGHT_BRACKET", "]"),
+    ("LBRC", "{"),
+    ("RBRC", "}"),
+    ("LPAR", "("),
+    ("RPAR", ")"),
+    ("SQT", "'"),
+    ("SINGLE_QUOTE", "'"),
+    ("DQT", "\""),
+    ("DOUBLE_QUOTES", "\""),
+    ("GRAVE", "`"),
+    ("TILDE", "~"),
+    ("EXCLAMATION", "!"),
+    ("EXCL", "!"),
+    ("AT_SIGN", "@"),
+    ("AT", "@"),
+    ("HASH", "#"),
+    ("POUND", "#"),
+    ("DLLR", "$"),
+    ("DOLLAR", "$"),
+    ("PRCNT", "%"),
+    ("PERCENT", "%"),
     ("CARET", "^"),
-    ("AMPS", "&"), ("AMPERSAND", "&"),
-    ("STAR", "*"), ("ASTRK", "*"), ("MULTIPLY", "*"),
-    ("VOLUME_UP", "VOL+"), ("VOLUME_DOWN", "VOL-"), ("MUTE", "MUTE"),
-    ("UNDER", "_"), ("UNDERSCORE", "_"),
-    ("PIPE", "|"), ("COLON", ":"),
-    ("LT", "<"), ("LESS_THAN", "<"),
-    ("GT", ">"), ("GREATER_THAN", ">"),
-    ("QMARK", "?"), ("QUESTION", "?"),
-    ("C_VOL_UP", "VOL+"), ("C_VOL_DN", "VOL-"), ("C_MUTE", "MUTE"),
-    ("C_PP", "⏯"), ("C_NEXT", "⏭"), ("C_PREV", "⏮"),
-    ("C_BRI_UP", "☀+"), ("C_BRI_DN", "☀-"),
-    ("N0", "0"), ("N1", "1"), ("N2", "2"), ("N3", "3"), ("N4", "4"),
-    ("N5", "5"), ("N6", "6"), ("N7", "7"), ("N8", "8"), ("N9", "9"),
+    ("AMPS", "&"),
+    ("AMPERSAND", "&"),
+    ("STAR", "*"),
+    ("ASTRK", "*"),
+    ("MULTIPLY", "*"),
+    ("VOLUME_UP", "VOL+"),
+    ("VOLUME_DOWN", "VOL-"),
+    ("MUTE", "MUTE"),
+    ("UNDER", "_"),
+    ("UNDERSCORE", "_"),
+    ("PIPE", "|"),
+    ("COLON", ":"),
+    ("LT", "<"),
+    ("LESS_THAN", "<"),
+    ("GT", ">"),
+    ("GREATER_THAN", ">"),
+    ("QMARK", "?"),
+    ("QUESTION", "?"),
+    ("C_VOL_UP", "VOL+"),
+    ("C_VOL_DN", "VOL-"),
+    ("C_MUTE", "MUTE"),
+    ("C_PP", "⏯"),
+    ("C_NEXT", "⏭"),
+    ("C_PREV", "⏮"),
+    ("C_BRI_UP", "☀+"),
+    ("C_BRI_DN", "☀-"),
+    ("N0", "0"),
+    ("N1", "1"),
+    ("N2", "2"),
+    ("N3", "3"),
+    ("N4", "4"),
+    ("N5", "5"),
+    ("N6", "6"),
+    ("N7", "7"),
+    ("N8", "8"),
+    ("N9", "9"),
 ];
 
 fn format_key(key: &str) -> String {
@@ -643,7 +688,10 @@ fn format_modifier(modifier: &str) -> String {
 fn format_modifier_in(modifier: &str, style: ModifierStyle) -> String {
     use ModifierStyle::*;
     let symbol = match (modifier.to_uppercase().as_str(), style) {
-        ("LEFT_SHIFT" | "LSHIFT" | "LSHFT" | "LS" | "RIGHT_SHIFT" | "RSHIFT" | "RSHFT" | "RS", _) => "⇧",
+        (
+            "LEFT_SHIFT" | "LSHIFT" | "LSHFT" | "LS" | "RIGHT_SHIFT" | "RSHIFT" | "RSHFT" | "RS",
+            _,
+        ) => "⇧",
         ("LEFT_CONTROL" | "LCTRL" | "LC" | "RIGHT_CONTROL" | "RCTRL" | "RC", Mac) => "⌃",
         ("LEFT_CONTROL" | "LCTRL" | "LC" | "RIGHT_CONTROL" | "RCTRL" | "RC", _) => "Ctrl",
         ("LEFT_ALT" | "LALT" | "LA" | "RIGHT_ALT" | "RALT" | "RA", Mac) => "⌥",
@@ -692,12 +740,19 @@ mod tests {
     }
 
     fn display(input: &str) -> Vec<String> {
-        parse_bindings(input).into_iter().map(|b| b.display_text).collect()
+        parse_bindings(input)
+            .into_iter()
+            .map(|b| b.display_text)
+            .collect()
     }
 
     fn first_layer_display(bindings: &str) -> Vec<String> {
         let km = parse(&one_layer(bindings), None).expect("parses");
-        km.layers[0].bindings.iter().map(|b| b.display_text.clone()).collect()
+        km.layers[0]
+            .bindings
+            .iter()
+            .map(|b| b.display_text.clone())
+            .collect()
     }
 
     // MARK: Basic keymap
@@ -747,7 +802,10 @@ mod tests {
 
     #[test]
     fn parse_key_bindings() {
-        assert_eq!(first_layer_display("&kp Q &kp W &kp E\n&kp A &kp S &kp D")[..3], ["Q", "W", "E"]);
+        assert_eq!(
+            first_layer_display("&kp Q &kp W &kp E\n&kp A &kp S &kp D")[..3],
+            ["Q", "W", "E"]
+        );
     }
 
     #[test]
@@ -778,13 +836,17 @@ mod tests {
 
     #[test]
     fn format_special_keys() {
-        let d = first_layer_display("&kp SPACE &kp TAB &kp BACKSPACE &kp RETURN\n&kp LEFT &kp RIGHT &kp UP &kp DOWN");
+        let d = first_layer_display(
+            "&kp SPACE &kp TAB &kp BACKSPACE &kp RETURN\n&kp LEFT &kp RIGHT &kp UP &kp DOWN",
+        );
         assert_eq!(d, ["␣", "⇥", "⌫", "⏎", "←", "→", "↑", "↓"]);
     }
 
     #[test]
     fn format_modifiers() {
-        let d = first_layer_display("&mt LEFT_SHIFT A &mt LEFT_CONTROL B &mt LEFT_ALT C &mt LEFT_GUI D");
+        let d = first_layer_display(
+            "&mt LEFT_SHIFT A &mt LEFT_CONTROL B &mt LEFT_ALT C &mt LEFT_GUI D",
+        );
         assert!(d[0].contains('⇧'));
         assert!(d[1].contains('⌃'));
         assert!(d[2].contains('⌥'));
@@ -852,7 +914,11 @@ mod tests {
 
     #[test]
     fn uniform_rows_and_columns() {
-        let km = parse(&one_layer("&kp Q &kp W &kp E &kp R\n&kp A &kp S &kp D &kp F\n&kp Z &kp X &kp C &kp V"), None).unwrap();
+        let km = parse(
+            &one_layer("&kp Q &kp W &kp E &kp R\n&kp A &kp S &kp D &kp F\n&kp Z &kp X &kp C &kp V"),
+            None,
+        )
+        .unwrap();
         assert_eq!(km.layers[0].row_count, 3);
         assert_eq!(km.layers[0].column_count, 4);
     }
@@ -963,12 +1029,18 @@ mod tests {
 
     #[test]
     fn bluetooth_bindings() {
-        assert_eq!(first_layer_display("&bt BT_SEL 0 &bt BT_CLR"), ["BT0", "BT CLR"]);
+        assert_eq!(
+            first_layer_display("&bt BT_SEL 0 &bt BT_CLR"),
+            ["BT0", "BT CLR"]
+        );
     }
 
     #[test]
     fn system_bindings() {
-        assert_eq!(first_layer_display("&sys_reset &bootloader"), ["RESET", "BOOT"]);
+        assert_eq!(
+            first_layer_display("&sys_reset &bootloader"),
+            ["RESET", "BOOT"]
+        );
     }
 
     #[test]
@@ -1038,13 +1110,22 @@ mod tests {
 
     #[test]
     fn first_line_is_not_skipped() {
-        assert_eq!(display("&kp N1 &kp N2 &kp N3\n&kp N4 &kp N5 &kp N6"), ["1", "2", "3", "4", "5", "6"]);
-        assert_eq!(display("// comment\n&kp N1 &kp N2 &kp N3\n&kp N4 &kp N5 &kp N6"), ["1", "2", "3", "4", "5", "6"]);
+        assert_eq!(
+            display("&kp N1 &kp N2 &kp N3\n&kp N4 &kp N5 &kp N6"),
+            ["1", "2", "3", "4", "5", "6"]
+        );
+        assert_eq!(
+            display("// comment\n&kp N1 &kp N2 &kp N3\n&kp N4 &kp N5 &kp N6"),
+            ["1", "2", "3", "4", "5", "6"]
+        );
     }
 
     #[test]
     fn comment_lines_are_stripped() {
-        assert_eq!(display("&kp Q &kp W &kp E\n// col 0 // col 1 // col 2\n&kp A &kp S &kp D"), ["Q", "W", "E", "A", "S", "D"]);
+        assert_eq!(
+            display("&kp Q &kp W &kp E\n// col 0 // col 1 // col 2\n&kp A &kp S &kp D"),
+            ["Q", "W", "E", "A", "S", "D"]
+        );
         let real = "                // col 0       // col 1      // col 2        // col 3\n&kp Q &kp W &kp F";
         assert_eq!(display(real), ["Q", "W", "F"]);
     }
@@ -1057,8 +1138,22 @@ mod tests {
         let _g = TABLE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         KeyCharacters::set_table(
             [
-                (Combo { usage: 0x1F, shift: true, option: true }, "€".to_string()),
-                (Combo { usage: 0x33, shift: false, option: false }, "ö".to_string()),
+                (
+                    Combo {
+                        usage: 0x1F,
+                        shift: true,
+                        option: true,
+                    },
+                    "€".to_string(),
+                ),
+                (
+                    Combo {
+                        usage: 0x33,
+                        shift: false,
+                        option: false,
+                    },
+                    "ö".to_string(),
+                ),
             ]
             .into_iter()
             .collect(),

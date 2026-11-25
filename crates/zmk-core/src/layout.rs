@@ -80,7 +80,10 @@ impl KeyboardLayout {
     /// The Swift version walked an unordered dictionary; here the file path is
     /// checked first (the most reliable hint), then the content, so the result
     /// is always the same.
-    pub fn detect_keyboard_info(content: &str, file_path: Option<&str>) -> Option<(&'static str, bool)> {
+    pub fn detect_keyboard_info(
+        content: &str,
+        file_path: Option<&str>,
+    ) -> Option<(&'static str, bool)> {
         // Layout editor signatures first
         if content.contains("GO60 LAYOUT EDITOR") || content.contains("KB_TYPE_GO_60") {
             return Some(("Go60", true));
@@ -222,7 +225,10 @@ mod tests {
     #[test]
     fn path_wins_over_content() {
         // Content mentions another board; the file name decides
-        let info = KeyboardLayout::detect_keyboard_info("# ported from the corne", Some("C:\\cfg\\sofle.keymap"));
+        let info = KeyboardLayout::detect_keyboard_info(
+            "# ported from the corne",
+            Some("C:\\cfg\\sofle.keymap"),
+        );
         assert_eq!(info, Some(("Sofle", true)));
     }
 }

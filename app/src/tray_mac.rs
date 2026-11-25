@@ -27,8 +27,7 @@ pub fn split_keyboard_icon(layer: Option<usize>) -> (Vec<u8>, u32, u32) {
 
 unsafe fn draw_icon(layer: Option<usize>) -> Option<(Vec<u8>, u32, u32)> {
     let text = NSString::from_str(&layer.map(|n| n.to_string()).unwrap_or_default());
-    let font: Retained<AnyObject> =
-        msg_send![class!(NSFont), monospacedDigitSystemFontOfSize: FONT_SIZE, weight: FONT_WEIGHT_BOLD];
+    let font: Retained<AnyObject> = msg_send![class!(NSFont), monospacedDigitSystemFontOfSize: FONT_SIZE, weight: FONT_WEIGHT_BOLD];
     let black: Retained<AnyObject> = msg_send![class!(NSColor), blackColor];
     let attributes = attributes(&font, &black);
 
@@ -57,7 +56,8 @@ unsafe fn draw_icon(layer: Option<usize>) -> Option<(Vec<u8>, u32, u32)> {
     let rep = rep?;
     // Points, so drawing happens at 2x
     let _: () = msg_send![&*rep, setSize: NSSize::new(width, CANVAS_HEIGHT)];
-    let context: Option<Retained<AnyObject>> = msg_send![class!(NSGraphicsContext), graphicsContextWithBitmapImageRep: &*rep];
+    let context: Option<Retained<AnyObject>> =
+        msg_send![class!(NSGraphicsContext), graphicsContextWithBitmapImageRep: &*rep];
     let context = context?;
 
     let _: () = msg_send![class!(NSGraphicsContext), saveGraphicsState];
@@ -94,7 +94,11 @@ unsafe fn draw_icon(layer: Option<usize>) -> Option<(Vec<u8>, u32, u32)> {
     if data.is_null() {
         return None;
     }
-    let (w, h, row) = (pixels_wide as usize, pixels_high as usize, bytes_per_row as usize);
+    let (w, h, row) = (
+        pixels_wide as usize,
+        pixels_high as usize,
+        bytes_per_row as usize,
+    );
     let mut rgba = Vec::with_capacity(w * h * 4);
     for y in 0..h {
         rgba.extend_from_slice(std::slice::from_raw_parts(data.add(y * row), w * 4));
@@ -130,7 +134,10 @@ unsafe fn draw_left_half() {
     for row in 0..3 {
         for column in 0..3 {
             fill_key(NSRect::new(
-                NSPoint::new(left + column as f64 * (key + gap), grid_y + row as f64 * (key + gap)),
+                NSPoint::new(
+                    left + column as f64 * (key + gap),
+                    grid_y + row as f64 * (key + gap),
+                ),
                 NSSize::new(key, key),
             ));
         }
@@ -138,12 +145,14 @@ unsafe fn draw_left_half() {
 
     let inner = left + 3.0 * key + 2.0 * gap;
     let thumb_width = 5.2;
-    fill_key(NSRect::new(NSPoint::new(inner - thumb_width, thumb_y), NSSize::new(thumb_width, key)));
+    fill_key(NSRect::new(
+        NSPoint::new(inner - thumb_width, thumb_y),
+        NSSize::new(thumb_width, key),
+    ));
 }
 
 unsafe fn fill_key(rect: NSRect) {
-    let path: Retained<AnyObject> =
-        msg_send![class!(NSBezierPath), bezierPathWithRoundedRect: rect, xRadius: 0.5f64, yRadius: 0.5f64];
+    let path: Retained<AnyObject> = msg_send![class!(NSBezierPath), bezierPathWithRoundedRect: rect, xRadius: 0.5f64, yRadius: 0.5f64];
     let _: () = msg_send![&*path, fill];
 }
 
@@ -154,7 +163,13 @@ mod tests {
     /// Columns that hold any ink, as a string of # and .
     fn ink_columns(rgba: &[u8], w: usize, h: usize) -> String {
         (0..w)
-            .map(|x| if (0..h).any(|y| rgba[(y * w + x) * 4 + 3] > 40) { '#' } else { '.' })
+            .map(|x| {
+                if (0..h).any(|y| rgba[(y * w + x) * 4 + 3] > 40) {
+                    '#'
+                } else {
+                    '.'
+                }
+            })
             .collect()
     }
 
@@ -168,7 +183,11 @@ mod tests {
         assert_eq!(&columns[34..36], "##", "digit in the middle: {columns}");
         let empty = split_keyboard_icon(None).0;
         let empty_columns = ink_columns(&empty, 70, 36);
-        assert_eq!(&empty_columns[30..40], "..........", "no digit: {empty_columns}");
+        assert_eq!(
+            &empty_columns[30..40],
+            "..........",
+            "no digit: {empty_columns}"
+        );
         // Mirrored halves
         let first = columns.find('#').unwrap();
         let last = columns.rfind('#').unwrap();

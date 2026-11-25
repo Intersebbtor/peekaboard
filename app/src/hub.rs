@@ -39,7 +39,11 @@ impl Hub {
     pub fn emit_live(&self) {
         let (payload, layer) = {
             let s = self.lock();
-            let layer = if s.settings.show_layer_in_tray { s.selection.live_index } else { None };
+            let layer = if s.settings.show_layer_in_tray {
+                s.selection.live_index
+            } else {
+                None
+            };
             (s.live_payload(), layer)
         };
         let name = payload.live_layer_name.clone();
@@ -124,7 +128,10 @@ impl Hub {
 
     pub fn packet(&self, packet: LayerPacket) {
         match packet {
-            LayerPacket::LayerState { default_layers, active_layers } => {
+            LayerPacket::LayerState {
+                default_layers,
+                active_layers,
+            } => {
                 let layer = highest_layer(active_layers, default_layers);
                 self.lock().apply_live_layer(layer);
                 self.emit_live();
