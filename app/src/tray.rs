@@ -53,7 +53,9 @@ pub fn create(hub: &Hub) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     {
         let (rgba, w, h) = crate::tray_mac::split_keyboard_icon(None);
-        builder = builder.icon(Image::new_owned(rgba, w, h)).icon_as_template(true);
+        builder = builder
+            .icon(Image::new_owned(rgba, w, h))
+            .icon_as_template(true);
     }
     #[cfg(not(target_os = "macos"))]
     if let Some(icon) = app.default_window_icon() {
@@ -65,7 +67,9 @@ pub fn create(hub: &Hub) -> tauri::Result<()> {
 
 /// `layer`: the live layer, None without keyboard (or when hidden in settings)
 pub fn update(app: &AppHandle, layer: Option<usize>, layer_name: Option<&str>) {
-    let Some(tray) = app.tray_by_id(TRAY_ID) else { return };
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return;
+    };
 
     let tooltip = match layer_name {
         Some(name) => format!("ZMK Keymap Viewer · {name}"),
@@ -140,7 +144,12 @@ pub fn badge(layer: usize) -> Vec<u8> {
     }
 
     // Digits, centred
-    let digits: Vec<usize> = layer.to_string().chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
+    let digits: Vec<usize> = layer
+        .to_string()
+        .chars()
+        .filter_map(|c| c.to_digit(10))
+        .map(|d| d as usize)
+        .collect();
     let scale = if digits.len() == 1 { 5 } else { 3 };
     let gap = scale;
     let width = digits.len() * 3 * scale + (digits.len() - 1) * gap;
@@ -154,7 +163,12 @@ pub fn badge(layer: usize) -> Vec<u8> {
                 if bits >> (2 - col) & 1 == 1 {
                     for dy in 0..scale {
                         for dx in 0..scale {
-                            put(&mut rgba, origin_x + col * scale + dx, top + row * scale + dy, white);
+                            put(
+                                &mut rgba,
+                                origin_x + col * scale + dx,
+                                top + row * scale + dy,
+                                white,
+                            );
                         }
                     }
                 }

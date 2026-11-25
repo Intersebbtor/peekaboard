@@ -45,7 +45,11 @@ impl WpmMeter {
             return 0;
         };
         let elapsed = WINDOW.min(1f64.max(time - start));
-        let count = self.presses.iter().filter(|&&p| time - p <= elapsed).count();
+        let count = self
+            .presses
+            .iter()
+            .filter(|&&p| time - p <= elapsed)
+            .count();
         (count as f64 / CHARS_PER_WORD * 60.0 / elapsed).round() as u32
     }
 
@@ -69,9 +73,20 @@ impl WpmMeter {
     pub fn counts(raw_code: &str) -> bool {
         let code = raw_code.trim_matches(|c| c == ' ' || c == '\t');
         const NON_TYPING: [&str; 10] = [
-            "&mo ", "&tog ", "&to ", "&sl ", "&bt ", "&out ", "&none", "&sys_reset", "&bootloader", "&studio_unlock",
+            "&mo ",
+            "&tog ",
+            "&to ",
+            "&sl ",
+            "&bt ",
+            "&out ",
+            "&none",
+            "&sys_reset",
+            "&bootloader",
+            "&studio_unlock",
         ];
-        !NON_TYPING.iter().any(|p| code == p.trim() || code.starts_with(p))
+        !NON_TYPING
+            .iter()
+            .any(|p| code == p.trim() || code.starts_with(p))
     }
 }
 

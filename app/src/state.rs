@@ -269,7 +269,9 @@ impl Inner {
             error: self.error.clone(),
             recent_keymaps: self.settings.recent_keymaps.clone(),
             key_names: self.settings.key_names.clone(),
-            home_dir: std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).ok(),
+            home_dir: std::env::var("HOME")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .ok(),
         }
     }
 
@@ -302,7 +304,8 @@ mod tests {
 "#;
 
     fn temp_keymap(name: &str) -> String {
-        let dir = std::env::temp_dir().join(format!("zmk-viewer-test-{}-{name}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("zmk-viewer-test-{}-{name}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test.keymap");
         std::fs::write(&path, KEYMAP).unwrap();
@@ -355,7 +358,10 @@ mod tests {
         s.apply_live_layer(0);
         assert_eq!(s.selection.displayed_index, 1, "not following");
         s.sync_to_live_layer();
-        assert_eq!(s.selection.displayed_index, 0, "following again jumps to the live layer");
+        assert_eq!(
+            s.selection.displayed_index, 0,
+            "following again jumps to the live layer"
+        );
     }
 
     #[test]
@@ -383,7 +389,12 @@ mod tests {
         let (mut s, path) = state("names");
         s.open_path(&path);
         s.set_key_name("Q", Some("  Quit  "));
-        assert_eq!(s.keymap.as_ref().unwrap().layers[0].bindings[0].name.as_deref(), Some("Quit"));
+        assert_eq!(
+            s.keymap.as_ref().unwrap().layers[0].bindings[0]
+                .name
+                .as_deref(),
+            Some("Quit")
+        );
         assert_eq!(s.keymap.as_ref().unwrap().layers[0].bindings[1].name, None);
         s.set_key_name("Q", Some(""));
         assert_eq!(s.keymap.as_ref().unwrap().layers[0].bindings[0].name, None);

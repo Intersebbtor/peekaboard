@@ -63,7 +63,11 @@ pub fn toggle_main(app: &AppHandle) {
 
 /// The HUD: transparent, always on top, no taskbar entry, and it never takes
 /// the keyboard focus from the app you are typing in.
-pub fn create_hud(hub: &Hub, geometry: Option<HudGeometry>, use_material: bool) -> tauri::Result<WebviewWindow> {
+pub fn create_hud(
+    hub: &Hub,
+    geometry: Option<HudGeometry>,
+    use_material: bool,
+) -> tauri::Result<WebviewWindow> {
     let builder = WebviewWindowBuilder::new(&hub.app, "hud", WebviewUrl::App("hud.html".into()))
         .title("ZMK Keymap HUD")
         .decorations(false)
@@ -145,7 +149,9 @@ fn round_corners(window: &WebviewWindow) {
     use objc2::runtime::AnyObject;
     use objc2_foundation::NSString;
 
-    let Ok(ns_window) = window.ns_window() else { return };
+    let Ok(ns_window) = window.ns_window() else {
+        return;
+    };
     let ns_window = ns_window as *mut AnyObject;
     // SAFETY: called on the main thread (setup) with the live NSWindow
     unsafe {
@@ -262,7 +268,11 @@ pub fn fade_hud(app: &AppHandle, target: f64) {
                     return;
                 }
                 let t = (start.elapsed().as_secs_f64() / DURATION).min(1.0);
-                let eased = if t < 0.5 { 2.0 * t * t } else { 1.0 - (-2.0 * t + 2.0).powi(2) / 2.0 };
+                let eased = if t < 0.5 {
+                    2.0 * t * t
+                } else {
+                    1.0 - (-2.0 * t + 2.0).powi(2) / 2.0
+                };
                 let alpha = from + (target - from) * eased;
                 CURRENT.store(alpha.to_bits(), Ordering::SeqCst);
                 set_panel_alpha(&app, alpha);
@@ -300,12 +310,18 @@ pub fn spawn_hud_hover_watch(app: &AppHandle) {
         let mut was_inside: Option<bool> = None;
         loop {
             std::thread::sleep(Duration::from_millis(150));
-            let Some(hud) = app.get_webview_window("hud") else { continue };
+            let Some(hud) = app.get_webview_window("hud") else {
+                continue;
+            };
             if !hud.is_visible().unwrap_or(false) {
                 was_inside = None;
                 continue;
             }
-            let (Ok(cursor), Ok(pos), Ok(size)) = (hud.cursor_position(), hud.outer_position(), hud.outer_size()) else {
+            let (Ok(cursor), Ok(pos), Ok(size)) = (
+                hud.cursor_position(),
+                hud.outer_position(),
+                hud.outer_size(),
+            ) else {
                 continue;
             };
             let inside = cursor.x >= pos.x as f64
@@ -323,12 +339,17 @@ pub fn spawn_hud_hover_watch(app: &AppHandle) {
 /// Keeps the main window at least this big, so the keyboard fits without
 /// scrolling; a smaller window grows to it
 pub fn set_main_min_size(app: &AppHandle, width: f64, height: f64) {
-    let Some(w) = app.get_webview_window("main") else { return };
+    let Some(w) = app.get_webview_window("main") else {
+        return;
+    };
     let _ = w.set_min_size(Some(LogicalSize::new(width, height)));
     if let (Ok(size), Ok(scale)) = (w.inner_size(), w.scale_factor()) {
         let size = size.to_logical::<f64>(scale);
         if size.width < width || size.height < height {
-            let _ = w.set_size(LogicalSize::new(size.width.max(width), size.height.max(height)));
+            let _ = w.set_size(LogicalSize::new(
+                size.width.max(width),
+                size.height.max(height),
+            ));
         }
     }
 }

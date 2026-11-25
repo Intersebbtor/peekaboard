@@ -18,7 +18,8 @@ pub struct Combo {
     pub option: bool,
 }
 
-static TABLE: LazyLock<RwLock<HashMap<Combo, String>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+static TABLE: LazyLock<RwLock<HashMap<Combo, String>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 pub struct KeyCharacters;
 
@@ -86,54 +87,115 @@ impl KeyCharacters {
 /// ZMK key names of the typing keys: HID usage, and whether the name implies
 /// shift (EXCL is LS(N1))
 const KEY_USAGES: &[(&str, u16, bool)] = &[
-    ("A", 0x04, false), ("B", 0x05, false), ("C", 0x06, false), ("D", 0x07, false),
-    ("E", 0x08, false), ("F", 0x09, false), ("G", 0x0A, false), ("H", 0x0B, false),
-    ("I", 0x0C, false), ("J", 0x0D, false), ("K", 0x0E, false), ("L", 0x0F, false),
-    ("M", 0x10, false), ("N", 0x11, false), ("O", 0x12, false), ("P", 0x13, false),
-    ("Q", 0x14, false), ("R", 0x15, false), ("S", 0x16, false), ("T", 0x17, false),
-    ("U", 0x18, false), ("V", 0x19, false), ("W", 0x1A, false), ("X", 0x1B, false),
-    ("Y", 0x1C, false), ("Z", 0x1D, false),
-    ("N1", 0x1E, false), ("N2", 0x1F, false), ("N3", 0x20, false), ("N4", 0x21, false),
-    ("N5", 0x22, false), ("N6", 0x23, false), ("N7", 0x24, false), ("N8", 0x25, false),
-    ("N9", 0x26, false), ("N0", 0x27, false),
-    ("NUMBER_1", 0x1E, false), ("NUMBER_2", 0x1F, false), ("NUMBER_3", 0x20, false),
-    ("NUMBER_4", 0x21, false), ("NUMBER_5", 0x22, false), ("NUMBER_6", 0x23, false),
-    ("NUMBER_7", 0x24, false), ("NUMBER_8", 0x25, false), ("NUMBER_9", 0x26, false),
+    ("A", 0x04, false),
+    ("B", 0x05, false),
+    ("C", 0x06, false),
+    ("D", 0x07, false),
+    ("E", 0x08, false),
+    ("F", 0x09, false),
+    ("G", 0x0A, false),
+    ("H", 0x0B, false),
+    ("I", 0x0C, false),
+    ("J", 0x0D, false),
+    ("K", 0x0E, false),
+    ("L", 0x0F, false),
+    ("M", 0x10, false),
+    ("N", 0x11, false),
+    ("O", 0x12, false),
+    ("P", 0x13, false),
+    ("Q", 0x14, false),
+    ("R", 0x15, false),
+    ("S", 0x16, false),
+    ("T", 0x17, false),
+    ("U", 0x18, false),
+    ("V", 0x19, false),
+    ("W", 0x1A, false),
+    ("X", 0x1B, false),
+    ("Y", 0x1C, false),
+    ("Z", 0x1D, false),
+    ("N1", 0x1E, false),
+    ("N2", 0x1F, false),
+    ("N3", 0x20, false),
+    ("N4", 0x21, false),
+    ("N5", 0x22, false),
+    ("N6", 0x23, false),
+    ("N7", 0x24, false),
+    ("N8", 0x25, false),
+    ("N9", 0x26, false),
+    ("N0", 0x27, false),
+    ("NUMBER_1", 0x1E, false),
+    ("NUMBER_2", 0x1F, false),
+    ("NUMBER_3", 0x20, false),
+    ("NUMBER_4", 0x21, false),
+    ("NUMBER_5", 0x22, false),
+    ("NUMBER_6", 0x23, false),
+    ("NUMBER_7", 0x24, false),
+    ("NUMBER_8", 0x25, false),
+    ("NUMBER_9", 0x26, false),
     ("NUMBER_0", 0x27, false),
-    ("MINUS", 0x2D, false), ("EQUAL", 0x2E, false),
-    ("LBKT", 0x2F, false), ("LEFT_BRACKET", 0x2F, false),
-    ("RBKT", 0x30, false), ("RIGHT_BRACKET", 0x30, false),
-    ("BSLH", 0x31, false), ("BACKSLASH", 0x31, false),
-    ("NUHS", 0x32, false), ("NON_US_HASH", 0x32, false),
-    ("SEMI", 0x33, false), ("SEMICOLON", 0x33, false),
-    ("SQT", 0x34, false), ("SINGLE_QUOTE", 0x34, false), ("APOSTROPHE", 0x34, false), ("APOS", 0x34, false),
+    ("MINUS", 0x2D, false),
+    ("EQUAL", 0x2E, false),
+    ("LBKT", 0x2F, false),
+    ("LEFT_BRACKET", 0x2F, false),
+    ("RBKT", 0x30, false),
+    ("RIGHT_BRACKET", 0x30, false),
+    ("BSLH", 0x31, false),
+    ("BACKSLASH", 0x31, false),
+    ("NUHS", 0x32, false),
+    ("NON_US_HASH", 0x32, false),
+    ("SEMI", 0x33, false),
+    ("SEMICOLON", 0x33, false),
+    ("SQT", 0x34, false),
+    ("SINGLE_QUOTE", 0x34, false),
+    ("APOSTROPHE", 0x34, false),
+    ("APOS", 0x34, false),
     ("GRAVE", 0x35, false),
     ("COMMA", 0x36, false),
-    ("DOT", 0x37, false), ("PERIOD", 0x37, false),
-    ("FSLH", 0x38, false), ("SLASH", 0x38, false),
-    ("NUBS", 0x64, false), ("NON_US_BACKSLASH", 0x64, false),
+    ("DOT", 0x37, false),
+    ("PERIOD", 0x37, false),
+    ("FSLH", 0x38, false),
+    ("SLASH", 0x38, false),
+    ("NUBS", 0x64, false),
+    ("NON_US_BACKSLASH", 0x64, false),
     // Names that imply shift
-    ("EXCL", 0x1E, true), ("EXCLAMATION", 0x1E, true),
-    ("AT", 0x1F, true), ("AT_SIGN", 0x1F, true),
-    ("HASH", 0x20, true), ("POUND", 0x20, true),
-    ("DLLR", 0x21, true), ("DOLLAR", 0x21, true),
-    ("PRCNT", 0x22, true), ("PERCENT", 0x22, true),
+    ("EXCL", 0x1E, true),
+    ("EXCLAMATION", 0x1E, true),
+    ("AT", 0x1F, true),
+    ("AT_SIGN", 0x1F, true),
+    ("HASH", 0x20, true),
+    ("POUND", 0x20, true),
+    ("DLLR", 0x21, true),
+    ("DOLLAR", 0x21, true),
+    ("PRCNT", 0x22, true),
+    ("PERCENT", 0x22, true),
     ("CARET", 0x23, true),
-    ("AMPS", 0x24, true), ("AMPERSAND", 0x24, true),
-    ("STAR", 0x25, true), ("ASTRK", 0x25, true), ("ASTERISK", 0x25, true),
-    ("LPAR", 0x26, true), ("LEFT_PARENTHESIS", 0x26, true),
-    ("RPAR", 0x27, true), ("RIGHT_PARENTHESIS", 0x27, true),
-    ("UNDER", 0x2D, true), ("UNDERSCORE", 0x2D, true),
+    ("AMPS", 0x24, true),
+    ("AMPERSAND", 0x24, true),
+    ("STAR", 0x25, true),
+    ("ASTRK", 0x25, true),
+    ("ASTERISK", 0x25, true),
+    ("LPAR", 0x26, true),
+    ("LEFT_PARENTHESIS", 0x26, true),
+    ("RPAR", 0x27, true),
+    ("RIGHT_PARENTHESIS", 0x27, true),
+    ("UNDER", 0x2D, true),
+    ("UNDERSCORE", 0x2D, true),
     ("PLUS", 0x2E, true),
-    ("LBRC", 0x2F, true), ("LEFT_BRACE", 0x2F, true),
-    ("RBRC", 0x30, true), ("RIGHT_BRACE", 0x30, true),
+    ("LBRC", 0x2F, true),
+    ("LEFT_BRACE", 0x2F, true),
+    ("RBRC", 0x30, true),
+    ("RIGHT_BRACE", 0x30, true),
     ("PIPE", 0x31, true),
     ("COLON", 0x33, true),
-    ("DQT", 0x34, true), ("DOUBLE_QUOTES", 0x34, true),
+    ("DQT", 0x34, true),
+    ("DOUBLE_QUOTES", 0x34, true),
     ("TILDE", 0x35, true),
-    ("LT", 0x36, true), ("LESS_THAN", 0x36, true),
-    ("GT", 0x37, true), ("GREATER_THAN", 0x37, true),
-    ("QMARK", 0x38, true), ("QUESTION", 0x38, true),
+    ("LT", 0x36, true),
+    ("LESS_THAN", 0x36, true),
+    ("GT", 0x37, true),
+    ("GREATER_THAN", 0x37, true),
+    ("QMARK", 0x38, true),
+    ("QUESTION", 0x38, true),
 ];
 
 #[cfg(test)]
@@ -150,7 +212,11 @@ mod tests {
     use super::*;
 
     fn combo(usage: u16, shift: bool, option: bool) -> Combo {
-        Combo { usage, shift, option }
+        Combo {
+            usage,
+            shift,
+            option,
+        }
     }
 
     /// A few keys of the US layout, plus German ones on SEMI and MINUS
@@ -172,10 +238,24 @@ mod tests {
     fn option_combos_show_their_character() {
         let _g = TABLE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         sample_table();
-        assert_eq!(KeyCharacters::typed_character("LS(LA(N2))").as_deref(), Some("€"));
-        assert_eq!(KeyCharacters::typed_character("LA(LS(NUMBER_2))").as_deref(), Some("€"), "nesting order doesn't matter");
-        assert_eq!(KeyCharacters::typed_character("RA(S)").as_deref(), Some("ß"));
-        assert_eq!(KeyCharacters::typed_character("LA(U)").as_deref(), Some("¨"), "a dead key shows its mark");
+        assert_eq!(
+            KeyCharacters::typed_character("LS(LA(N2))").as_deref(),
+            Some("€")
+        );
+        assert_eq!(
+            KeyCharacters::typed_character("LA(LS(NUMBER_2))").as_deref(),
+            Some("€"),
+            "nesting order doesn't matter"
+        );
+        assert_eq!(
+            KeyCharacters::typed_character("RA(S)").as_deref(),
+            Some("ß")
+        );
+        assert_eq!(
+            KeyCharacters::typed_character("LA(U)").as_deref(),
+            Some("¨"),
+            "a dead key shows its mark"
+        );
         KeyCharacters::clear();
     }
 
@@ -183,10 +263,22 @@ mod tests {
     fn plain_keys_follow_the_layout() {
         let _g = TABLE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         sample_table();
-        assert_eq!(KeyCharacters::typed_character("Q").as_deref(), Some("Q"), "letters as on keycaps");
+        assert_eq!(
+            KeyCharacters::typed_character("Q").as_deref(),
+            Some("Q"),
+            "letters as on keycaps"
+        );
         assert_eq!(KeyCharacters::typed_character("SEMI").as_deref(), Some("Ö"));
-        assert_eq!(KeyCharacters::typed_character("MINUS").as_deref(), Some("ß"), "not SS");
-        assert_eq!(KeyCharacters::typed_character("EXCL").as_deref(), Some("!"), "EXCL implies shift");
+        assert_eq!(
+            KeyCharacters::typed_character("MINUS").as_deref(),
+            Some("ß"),
+            "not SS"
+        );
+        assert_eq!(
+            KeyCharacters::typed_character("EXCL").as_deref(),
+            Some("!"),
+            "EXCL implies shift"
+        );
         KeyCharacters::clear();
     }
 
@@ -198,7 +290,11 @@ mod tests {
         assert_eq!(KeyCharacters::typed_character("LC(LA(Q))"), None);
         assert_eq!(KeyCharacters::typed_character("LSHFT"), None);
         assert_eq!(KeyCharacters::typed_character("LEFT"), None);
-        assert_eq!(KeyCharacters::typed_character("W"), None, "not in this layout's table");
+        assert_eq!(
+            KeyCharacters::typed_character("W"),
+            None,
+            "not in this layout's table"
+        );
         KeyCharacters::clear();
     }
 }

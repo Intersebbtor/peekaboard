@@ -102,7 +102,13 @@ mod tests {
         s.add_recent_keymap("/k3.keymap");
         assert_eq!(s.recent_keymaps.len(), MAX_RECENT_KEYMAPS);
         assert_eq!(s.recent_keymaps[0], "/k3.keymap");
-        assert_eq!(s.recent_keymaps.iter().filter(|p| *p == "/k3.keymap").count(), 1);
+        assert_eq!(
+            s.recent_keymaps
+                .iter()
+                .filter(|p| *p == "/k3.keymap")
+                .count(),
+            1
+        );
     }
 
     #[test]

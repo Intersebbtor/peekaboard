@@ -26,7 +26,11 @@ pub fn check() {
     };
     println!("HID devices (looking for usage page {USAGE_PAGE:#06x}, usage {USAGE:#04x}):");
     for d in api.device_list() {
-        let marker = if d.usage_page() == USAGE_PAGE && d.usage() == USAGE { "  <-- live layer" } else { "" };
+        let marker = if d.usage_page() == USAGE_PAGE && d.usage() == USAGE {
+            "  <-- live layer"
+        } else {
+            ""
+        };
         println!(
             "  {:04x}:{:04x}  page {:#06x} usage {:#04x}  interface {:>2}  {:?} / {:?}{marker}",
             d.vendor_id(),
@@ -40,8 +44,15 @@ pub fn check() {
     }
     // Over USB and Bluetooth at once the keyboard shows up twice: listen to all
     let mut devices = Vec::new();
-    for info in api.device_list().filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE) {
-        let via = if info.interface_number() >= 0 { "USB" } else { "Bluetooth" };
+    for info in api
+        .device_list()
+        .filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE)
+    {
+        let via = if info.interface_number() >= 0 {
+            "USB"
+        } else {
+            "Bluetooth"
+        };
         match info.open_device(&api) {
             Ok(device) => {
                 println!("Opened the {via} one: {:?}", info.path());
@@ -65,7 +76,10 @@ pub fn check() {
                 Ok(length) => {
                     packets += 1;
                     let decoded = LayerPacket::decode(&buffer[..length]);
-                    println!("  {via}: {length} bytes {:02x?} -> {decoded:?}", &buffer[..length.min(8)]);
+                    println!(
+                        "  {via}: {length} bytes {:02x?} -> {decoded:?}",
+                        &buffer[..length.min(8)]
+                    );
                 }
                 Err(e) => println!("  {via}: read failed: {e}"),
             }
@@ -103,7 +117,10 @@ fn run_hid(hub: &Hub) {
         // twice and talks over only one of them: listen to every match
         let mut name = None;
         let mut devices = Vec::new();
-        for info in api.device_list().filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE) {
+        for info in api
+            .device_list()
+            .filter(|d| d.usage_page() == USAGE_PAGE && d.usage() == USAGE)
+        {
             let product = info.product_string().unwrap_or("Keyboard").to_string();
             match info.open_device(&api) {
                 Ok(device) => {
@@ -115,7 +132,10 @@ fn run_hid(hub: &Hub) {
         }
 
         if let Some(name) = name {
-            eprintln!("[LiveLayer] Connected: {name} ({} interface(s))", devices.len());
+            eprintln!(
+                "[LiveLayer] Connected: {name} ({} interface(s))",
+                devices.len()
+            );
             hub.keyboard_connected(name);
 
             let mut buffer = [0u8; 64];
@@ -163,7 +183,8 @@ fn run_simulator(hub: &Hub) {
             let km = s.keymap.as_ref();
             (
                 km.map_or(1, |k| k.layers.len()),
-                km.and_then(|k| k.layers.first()).map_or(34, |l| l.bindings.len()),
+                km.and_then(|k| k.layers.first())
+                    .map_or(34, |l| l.bindings.len()),
             )
         };
 
@@ -180,11 +201,17 @@ fn run_simulator(hub: &Hub) {
 
         // Press and release keys
         match held.take() {
-            Some(position) => hub.packet(LayerPacket::KeyEvent { position, pressed: false }),
+            Some(position) => hub.packet(LayerPacket::KeyEvent {
+                position,
+                pressed: false,
+            }),
             None if typing => {
                 let position = (tick.wrapping_mul(2654435761) >> 7) as usize % key_count.max(1);
                 held = Some(position);
-                hub.packet(LayerPacket::KeyEvent { position, pressed: true });
+                hub.packet(LayerPacket::KeyEvent {
+                    position,
+                    pressed: true,
+                });
             }
             None => {}
         }

@@ -44,7 +44,10 @@ pub fn spawn(hub: Hub) {
             match rx.recv_timeout(Duration::from_millis(500)) {
                 Ok(Ok(event)) => {
                     let Some(file) = &watched else { continue };
-                    let relevant = event.paths.iter().any(|p| p.file_name() == file.file_name());
+                    let relevant = event
+                        .paths
+                        .iter()
+                        .any(|p| p.file_name() == file.file_name());
                     if !relevant || event.kind.is_access() {
                         continue;
                     }

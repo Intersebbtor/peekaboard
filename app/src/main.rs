@@ -1,4 +1,7 @@
-#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
 mod hid;
 mod hub;
@@ -80,12 +83,15 @@ fn set_setting(hub: State<'_, Hub>, key: String, value: Value) -> Result<(), Str
     {
         let mut s = hub.lock();
         let mut current = serde_json::to_value(&s.settings).map_err(|e| e.to_string())?;
-        let object = current.as_object_mut().ok_or("settings are not an object")?;
+        let object = current
+            .as_object_mut()
+            .ok_or("settings are not an object")?;
         if !object.contains_key(&key) {
             return Err(format!("Unknown setting: {key}"));
         }
         object.insert(key.clone(), value.clone());
-        s.settings = serde_json::from_value::<Settings>(current).map_err(|e| format!("Bad value for {key}: {e}"))?;
+        s.settings = serde_json::from_value::<Settings>(current)
+            .map_err(|e| format!("Bad value for {key}: {e}"))?;
         // Following the live layer starts right away
         if key == "followLiveLayer" && value == Value::Bool(true) {
             s.sync_to_live_layer();
@@ -143,7 +149,9 @@ fn set_main_min_size(app: AppHandle, width: f64, height: f64) {
 
 #[tauri::command]
 fn open_in_editor(hub: State<'_, Hub>) {
-    let Some(path) = hub.lock().file_path.clone() else { return };
+    let Some(path) = hub.lock().file_path.clone() else {
+        return;
+    };
     open_with_default_app(&path);
 }
 
@@ -186,7 +194,11 @@ fn main() {
     let simulate = args.iter().any(|a| a == "--simulate") || std::env::var("ZMK_SIMULATE").is_ok();
     let start_with_hud = args.iter().any(|a| a == "--hud");
     // Optional: a keymap file to open right away (also what "Open with" passes)
-    let file_arg = args.iter().skip(1).find(|a| a.ends_with(".keymap")).cloned();
+    let file_arg = args
+        .iter()
+        .skip(1)
+        .find(|a| a.ends_with(".keymap"))
+        .cloned();
 
     let builder = tauri::Builder::default();
     #[cfg(target_os = "macos")]
