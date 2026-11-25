@@ -1,9 +1,9 @@
-# PeekaBoard
+# peekaboard
 
-Peek at your keyboard: PeekaBoard shows your ZMK keymap as a 2D grid, with a floating
+Peek at your keyboard: peekaboard shows your ZMK keymap as a 2D grid, with a floating
 **HUD** and the **live layer** of your keyboard. For Windows and Linux, QMK support is planned.
 
-PeekaBoard is the cross-platform port of the
+peekaboard is the cross-platform port of the
 [ZMK Keymap Viewer](https://github.com/Intersebbtor/ZMK-keymap-viewer), a macOS menu bar app.
 **On a Mac with ZMK, use the ZMK Keymap Viewer**: it is feature complete and has a few
 extras that are not ported yet (see below).
