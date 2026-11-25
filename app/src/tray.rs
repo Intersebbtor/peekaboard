@@ -29,7 +29,7 @@ pub fn create(hub: &Hub) -> tauri::Result<()> {
     let menu_hub = hub.clone();
     let click_hub = hub.clone();
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
-        .tooltip("ZMK Keymap Viewer")
+        .tooltip("peekaboard")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
@@ -72,8 +72,8 @@ pub fn update(app: &AppHandle, layer: Option<usize>, layer_name: Option<&str>) {
     };
 
     let tooltip = match layer_name {
-        Some(name) => format!("ZMK Keymap Viewer · {name}"),
-        None => "ZMK Keymap Viewer".to_string(),
+        Some(name) => format!("peekaboard · {name}"),
+        None => "peekaboard".to_string(),
     };
     let _ = tray.set_tooltip(Some(tooltip));
 

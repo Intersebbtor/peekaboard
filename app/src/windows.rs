@@ -26,7 +26,7 @@ tauri_nspanel::tauri_panel! {
 
 pub fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-        .title("ZMK Keymap Viewer")
+        .title("peekaboard")
         .inner_size(740.0, 500.0)
         .min_inner_size(560.0, 380.0)
         .center()
@@ -69,7 +69,7 @@ pub fn create_hud(
     use_material: bool,
 ) -> tauri::Result<WebviewWindow> {
     let builder = WebviewWindowBuilder::new(&hub.app, "hud", WebviewUrl::App("hud.html".into()))
-        .title("ZMK Keymap HUD")
+        .title("peekaboard HUD")
         .decorations(false)
         .transparent(true)
         .shadow(false)

@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use keymap_core::{KeyBinding, Keymap, LayerSelection, WpmMeter};
 use serde::Serialize;
-use zmk_core::{KeyBinding, Keymap, LayerSelection, WpmMeter};
 
 use crate::settings::Settings;
 
@@ -99,7 +99,7 @@ impl Inner {
             self.error = Some("File not found".to_string());
             return false;
         }
-        match zmk_core::load_keymap(path) {
+        match keymap_core::load_keymap(path) {
             Ok(parsed) => {
                 let is_new_file = self.file_path.as_deref() != Some(path);
                 self.file_keymap = Some(parsed);
@@ -245,7 +245,7 @@ impl Inner {
     pub fn is_qmk(&self) -> bool {
         self.keymap
             .as_ref()
-            .is_some_and(|k| k.firmware == zmk_core::Firmware::Qmk)
+            .is_some_and(|k| k.firmware == keymap_core::Firmware::Qmk)
     }
 
     /// A press on the live layer that types something
@@ -326,7 +326,7 @@ mod tests {
 
     fn temp_keymap(name: &str) -> String {
         let dir =
-            std::env::temp_dir().join(format!("zmk-viewer-test-{}-{name}", std::process::id()));
+            std::env::temp_dir().join(format!("peekaboard-test-{}-{name}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test.keymap");
         std::fs::write(&path, KEYMAP).unwrap();

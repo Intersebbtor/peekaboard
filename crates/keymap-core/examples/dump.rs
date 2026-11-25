@@ -1,10 +1,10 @@
 //! Prints a keymap as JSON (or a short summary with --summary).
-//! cargo run -p zmk-core --example dump -- path/to/file.keymap [--summary]
+//! cargo run -p keymap-core --example dump -- path/to/file.keymap [--summary]
 fn main() {
     let mut args = std::env::args().skip(1);
     let path = args.next().expect("usage: dump <file.keymap> [--summary]");
     let summary = args.next().as_deref() == Some("--summary");
-    let km = zmk_core::load_keymap(&path).unwrap_or_else(|e| {
+    let km = keymap_core::load_keymap(&path).unwrap_or_else(|e| {
         eprintln!("{e}");
         std::process::exit(1)
     });

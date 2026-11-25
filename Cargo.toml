@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/zmk-core", "app"]
+members = ["crates/keymap-core", "app"]
 
 [workspace.package]
 version = "0.1.0"

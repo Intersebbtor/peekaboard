@@ -11,10 +11,10 @@ case "${1:-arm64}" in
 esac
 T_ENV=${T//-/_}
 export "CC_${T_ENV}=${P}-clang" "CXX_${T_ENV}=${P}-clang++" "AR_${T_ENV}=llvm-ar"
-cargo build --release --target "$T" -p zmk-keymap-viewer
+cargo build --release --target "$T" -p peekaboard
 # The GNU targets load WebView2 through WebView2Loader.dll, which has to sit
 # next to the exe: each architecture gets its own folder
 OUT="dist/windows-${1:-arm64}"
 mkdir -p "$OUT"
-cp "target/$T/release/zmk-keymap-viewer.exe" "target/$T/release/WebView2Loader.dll" "$OUT/"
+cp "target/$T/release/peekaboard.exe" "target/$T/release/WebView2Loader.dll" "$OUT/"
 ls -la "$OUT"

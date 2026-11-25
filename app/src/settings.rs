@@ -85,8 +85,24 @@ impl Settings {
     }
 }
 
+/// Config folder of the app before it was called peekaboard
+const OLD_CONFIG_DIR: &str = "com.intersebbtor.zmk-keymap-viewer";
+
+/// The settings file. The first start after the rename takes over the old
+/// settings (recent files, key names, HUD place).
 pub fn settings_path(config_dir: PathBuf) -> PathBuf {
-    config_dir.join("settings.json")
+    let path = config_dir.join("settings.json");
+    if !path.exists() {
+        if let Some(old) = config_dir
+            .parent()
+            .map(|p| p.join(OLD_CONFIG_DIR).join("settings.json"))
+            .filter(|old| old.is_file())
+        {
+            let _ = std::fs::create_dir_all(&config_dir);
+            let _ = std::fs::copy(old, &path);
+        }
+    }
+    path
 }
 
 #[cfg(test)]
@@ -117,5 +133,23 @@ mod tests {
         assert_eq!(s.hud_opacity, 0.5);
         assert_eq!(s.hud_timeout, 3.0);
         assert_eq!(s.shortcut, "Ctrl+Shift+K");
+    }
+
+    #[test]
+    fn settings_of_the_old_app_name_are_taken_over_once() {
+        let root = std::env::temp_dir().join(format!("peekaboard-settings-{}", std::process::id()));
+        let old = root.join(OLD_CONFIG_DIR);
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("settings.json"), r#"{"hudOpacity":0.4}"#).unwrap();
+
+        let new_dir = root.join("com.intersebbtor.peekaboard");
+        let path = settings_path(new_dir.clone());
+        assert_eq!(Settings::load(&path).hud_opacity, 0.4);
+
+        // Later changes stay: the old file is not copied again
+        std::fs::write(&path, r#"{"hudOpacity":0.9}"#).unwrap();
+        let path = settings_path(new_dir);
+        assert_eq!(Settings::load(&path).hud_opacity, 0.9);
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }

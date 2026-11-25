@@ -44,8 +44,8 @@ Compared to the macOS app:
 ## Try it without a keyboard
 
 ```
-zmk-keymap-viewer --simulate --hud path\to\config\cradio.keymap
-zmk-keymap-viewer --simulate examples/qmk/sweep-keymap.json
+peekaboard --simulate --hud path\to\config\cradio.keymap
+peekaboard --simulate examples/qmk/sweep-keymap.json
 ```
 
 `--simulate` fakes a keyboard that changes layers and types; `--hud` opens the HUD.
@@ -57,7 +57,7 @@ Needs Rust (`rustup`). The UI is plain HTML/CSS/JS in `app/ui`, no Node build st
 
 ```
 cargo test --workspace            # core + app tests
-cargo run -p zmk-keymap-viewer    # run on this machine
+cargo run -p peekaboard           # run on this machine
 ```
 
 CI runs these on every push and pull request (Windows, Linux, macOS). Run them before you open a PR:
@@ -83,7 +83,7 @@ It needs the WebView2 runtime, which Windows 11 has built in.
 
 | Path | What |
 |---|---|
-| `crates/zmk-core` | Platform-independent core: ZMK parser (`parser.rs`, tests ported from the Swift app), QMK parser (`qmk.rs`), layout detection, live-layer packets, typing speed |
+| `crates/keymap-core` | Platform-independent core: ZMK parser (`parser.rs`, tests ported from the Swift app), QMK parser (`qmk.rs`), layout detection, live-layer packets, typing speed |
 | `app/src` | Tauri app: state, HID thread, file watcher, tray, windows, commands |
 | `app/ui` | The two windows (`index.html`, `hud.html`); `dev/mock-state.json` is for browser previews |
 
@@ -92,7 +92,8 @@ open `index.html?sim=1` or `hud.html?sim=1`.
 
 ## Settings
 
-`settings.json` in the app's config folder (on Windows `%APPDATA%\com.intersebbtor.zmk-keymap-viewer`).
+`settings.json` in the app's config folder (on Windows `%APPDATA%\com.intersebbtor.peekaboard`).
+The first start takes over the settings of earlier builds (`com.intersebbtor.zmk-keymap-viewer`).
 
 ## QMK
 
@@ -124,7 +125,7 @@ Open the `keymap.json` (QMK Configurator export or `qmk c2json`) or the `keymap.
   [zmk-keypeek-layer-notifier](https://github.com/srwi/zmk-keypeek-layer-notifier) in your firmware.
 - **QMK:** `srwi/keypeek_layer_notify`, see [QMK](#qmk).
 
-The packet format is the same for both (`crates/zmk-core/src/live.rs`). No code is taken
+The packet format is the same for both (`crates/keymap-core/src/live.rs`). No code is taken
 from KeyPeek (GPL-3.0); peekaboard only speaks the same protocol.
 
 MIT license, same as the macOS app.
