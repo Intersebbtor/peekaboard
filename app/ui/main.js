@@ -148,7 +148,7 @@ function renderBody() {
       <div class="placeholder">
         ${ICONS.keyboard}
         <h2>No keymap yet</h2>
-        <p>Choose the <b>.keymap</b> file of your ZMK config (usually <code>config/&lt;keyboard&gt;.keymap</code>), or drop it on this window.</p>
+        <p>Choose the <b>.keymap</b> file of your ZMK config (usually <code>config/&lt;keyboard&gt;.keymap</code>) or your QMK <b>keymap.json</b> or <b>keymap.c</b>, or drop it on this window.</p>
         ${k && k.error ? `<p class="error">${esc(k.error)}</p>` : ''}
         <button class="btn prominent" data-choose>Choose File…</button>
       </div>`;
@@ -249,7 +249,7 @@ function buildSettings(content) {
         <div class="status"><span class="dot" id="live-dot"></span><span id="live-text"></span></div>
         <label class="toggle"><input type="checkbox" data-setting="followLiveLayer"> Follow the keyboard's active layer</label>
         <label class="toggle"><input type="checkbox" data-setting="showLayerInTray"> Show layer number in the tray icon</label>
-        <p class="note">Needs the zmk-raw-hid and zmk-keypeek-layer-notifier firmware modules. Without a keyboard the app shows the keymap file.</p>
+        <p class="note">Needs the KeyPeek firmware modules: zmk-raw-hid and zmk-keypeek-layer-notifier on ZMK, keypeek_layer_notify on QMK. Without a keyboard the app shows the keymap file.</p>
       </section>
       <div class="divider"></div>
 
@@ -493,12 +493,12 @@ Store.onChange(() => {
   fitWindowToKeyboard();
 });
 
-// A .keymap file dropped on the window loads
+// A keymap file dropped on the window loads: ZMK .keymap, QMK keymap.json or keymap.c
 Bridge.listen('tauri://drag-enter', () => document.body.classList.add('dropzone'));
 Bridge.listen('tauri://drag-leave', () => document.body.classList.remove('dropzone'));
 Bridge.listen('tauri://drag-drop', (payload) => {
   document.body.classList.remove('dropzone');
-  const path = (payload.paths || []).find((p) => p.toLowerCase().endsWith('.keymap'));
+  const path = (payload.paths || []).find((p) => /\.(keymap|json|c)$/i.test(p));
   if (path) Bridge.invoke('load_path', { path });
 });
 
