@@ -191,7 +191,7 @@ fn run_simulator(hub: &Hub) {
         // Bursts of ~2 s typing, then ~6 s pause (so the HUD fades in between),
         // a new layer with every burst
         let typing = tick % 36 < 9;
-        if tick % 36 == 0 {
+        if tick.is_multiple_of(36) {
             let layer = (tick / 36) as usize % layer_count.max(1);
             hub.packet(LayerPacket::LayerState {
                 default_layers: 1,

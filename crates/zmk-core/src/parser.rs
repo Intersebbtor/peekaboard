@@ -484,15 +484,11 @@ fn parse_display_text(raw_code: &str) -> String {
         "studio_unlock" => return "STUDIO".to_string(),
         _ => {
             // Custom behaviors like long_MT, short_LT
-            if behavior.contains("MT") || behavior.contains("mt") {
-                if parts.len() > 2 {
-                    return format!("{}\n{}", format_modifier(parts[1]), format_key(parts[2]));
-                }
+            if (behavior.contains("MT") || behavior.contains("mt")) && parts.len() > 2 {
+                return format!("{}\n{}", format_modifier(parts[1]), format_key(parts[2]));
             }
-            if behavior.contains("LT") || behavior.contains("lt") {
-                if parts.len() > 2 {
-                    return format!("L{}\n{}", parts[1], format_key(parts[2]));
-                }
+            if (behavior.contains("LT") || behavior.contains("lt")) && parts.len() > 2 {
+                return format!("L{}\n{}", parts[1], format_key(parts[2]));
             }
             // Macros and other custom behaviors
             if parts.len() == 1 {
