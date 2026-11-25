@@ -5,9 +5,9 @@
 use std::sync::MutexGuard;
 use std::time::Duration;
 
+use keymap_core::{highest_layer, LayerPacket};
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
-use zmk_core::{highest_layer, LayerPacket};
 
 use crate::state::{Inner, Shared};
 use crate::{tray, windows};

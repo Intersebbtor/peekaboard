@@ -12,10 +12,10 @@ pub fn load_system_layout() {}
 pub fn load_system_layout() {
     use std::collections::HashMap;
 
+    use keymap_core::{Combo, KeyCharacters};
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
         GetKeyboardLayout, MapVirtualKeyExW, ToUnicodeEx, MAPVK_VSC_TO_VK_EX, VK_SHIFT,
     };
-    use zmk_core::{Combo, KeyCharacters};
 
     let mut table: HashMap<Combo, String> = HashMap::new();
     // SAFETY: plain Win32 calls with buffers that live for the whole call

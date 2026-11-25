@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ZMK Keymap Viewer",
+  "productName": "peekaboard",
   "version": "0.1.0",
-  "identifier": "com.intersebbtor.zmk-keymap-viewer",
+  "identifier": "com.intersebbtor.peekaboard",
   "build": {
     "frontendDist": "./ui"
   },

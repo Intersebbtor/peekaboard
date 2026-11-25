@@ -2,14 +2,14 @@
 //! modules for ZMK and QMK (usage page 0xFF60, usage 0x61), over USB or
 //! Bluetooth. The vendor usage page means no special permission is needed.
 //!
-//! `--simulate` (or ZMK_SIMULATE=1) fakes a keyboard instead, to try the app
+//! `--simulate` (or PEEKABOARD_SIMULATE=1) fakes a keyboard instead, to try the app
 //! without hardware. It works with ZMK and QMK keymaps alike.
 
 use std::time::{Duration, Instant};
 
 use hidapi::{HidApi, HidDevice};
-use zmk_core::live::{QMK_SUBSCRIBE, QMK_UNSUBSCRIBE, USAGE, USAGE_PAGE};
-use zmk_core::LayerPacket;
+use keymap_core::live::{QMK_SUBSCRIBE, QMK_UNSUBSCRIBE, USAGE, USAGE_PAGE};
+use keymap_core::LayerPacket;
 
 use crate::hub::Hub;
 

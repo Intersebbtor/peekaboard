@@ -193,7 +193,9 @@ fn main() {
         hid::check(args.iter().any(|a| a == "--qmk"));
         return;
     }
-    let simulate = args.iter().any(|a| a == "--simulate") || std::env::var("ZMK_SIMULATE").is_ok();
+    let simulate = args.iter().any(|a| a == "--simulate")
+        || std::env::var("PEEKABOARD_SIMULATE").is_ok()
+        || std::env::var("ZMK_SIMULATE").is_ok();
     let start_with_hud = args.iter().any(|a| a == "--hud");
     // Optional: a keymap file to open right away (also what "Open with" passes)
     let file_arg = args
@@ -243,7 +245,7 @@ fn main() {
             app.manage(hub.clone());
 
             // Labels show what the keys type, from the first parse on
-            zmk_core::set_modifier_style(zmk_core::ModifierStyle::native());
+            keymap_core::set_modifier_style(keymap_core::ModifierStyle::native());
             sys_layout::load_system_layout();
             if let Some(file) = file_arg.or(most_recent) {
                 hub.lock().load_path(&file);
@@ -275,5 +277,5 @@ fn main() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running the ZMK Keymap Viewer");
+        .expect("error while running peekaboard");
 }
