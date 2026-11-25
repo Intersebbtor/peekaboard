@@ -70,6 +70,7 @@ impl WpmMeter {
     }
 
     /// Bindings that only switch layers or control the keyboard type nothing
+    /// (ZMK bindings and QMK keycodes)
     pub fn counts(raw_code: &str) -> bool {
         let code = raw_code.trim_matches(|c| c == ' ' || c == '\t');
         const NON_TYPING: [&str; 10] = [
@@ -84,9 +85,25 @@ impl WpmMeter {
             "&bootloader",
             "&studio_unlock",
         ];
-        !NON_TYPING
+        const QMK_NON_TYPING_PREFIXES: [&str; 10] = [
+            "MO(", "TG(", "TO(", "TT(", "OSL(", "DF(", "PDF(", "OSM(", "MS_", "KC_MS_",
+        ];
+        const QMK_NON_TYPING: [&str; 9] = [
+            "KC_NO",
+            "XXXXXXX",
+            "QK_BOOT",
+            "QK_BOOTLOADER",
+            "RESET",
+            "QK_RBT",
+            "QK_REBOOT",
+            "EE_CLR",
+            "QK_CLEAR_EEPROM",
+        ];
+        !(NON_TYPING
             .iter()
             .any(|p| code == p.trim() || code.starts_with(p))
+            || QMK_NON_TYPING_PREFIXES.iter().any(|p| code.starts_with(p))
+            || QMK_NON_TYPING.contains(&code))
     }
 }
 
@@ -132,6 +149,18 @@ mod tests {
         type_for(&mut m, 6.0, 5.0, 0.0);
         type_for(&mut m, 3.0, 2.0, 20.0);
         assert!((m.wpm(22.0) as f64 - 36.0).abs() <= 6.0);
+    }
+
+    #[test]
+    fn qmk_layer_and_boot_keys_type_nothing() {
+        assert!(WpmMeter::counts("KC_A"));
+        assert!(WpmMeter::counts("LSFT_T(KC_A)"));
+        assert!(WpmMeter::counts("LT(1, KC_SPC)"));
+        assert!(!WpmMeter::counts("MO(1)"));
+        assert!(!WpmMeter::counts("TG(_NAV)"));
+        assert!(!WpmMeter::counts("XXXXXXX"));
+        assert!(!WpmMeter::counts("QK_BOOT"));
+        assert!(!WpmMeter::counts("MS_BTN1"));
     }
 
     #[test]

@@ -43,6 +43,14 @@ pub struct KeymapLayer {
     pub column_count: usize,
 }
 
+/// The firmware a keymap file belongs to
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Firmware {
+    Zmk,
+    Qmk,
+}
+
 /// Complete parsed keymap with all layers and layout info
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +61,25 @@ pub struct Keymap {
     pub behaviors: BTreeMap<String, String>,
     /// macro name -> label
     pub macros: BTreeMap<String, String>,
+    pub firmware: Firmware,
+    /// Switch matrix position `[row, col]` of every key, in binding order.
+    /// Empty when unknown. QMK reports key presses by matrix position, so key
+    /// highlighting needs it there; ZMK reports the binding index directly.
+    pub matrix: Vec<[u8; 2]>,
+}
+
+impl Keymap {
+    /// The binding index of the key the keyboard reported, if known
+    pub fn position_of(&self, row: u8, col: u8) -> Option<usize> {
+        if !self.matrix.is_empty() {
+            return self.matrix.iter().position(|m| *m == [row, col]);
+        }
+        match self.firmware {
+            // keypeek-layer-notifier sends [0xF1, 0, position, pressed]
+            Firmware::Zmk => Some(col as usize),
+            Firmware::Qmk => None,
+        }
+    }
 }
 
 // MARK: - Regexes
@@ -124,20 +151,31 @@ pub fn parse(data: &str, file_path: Option<&str>) -> Option<Keymap> {
         layout,
         behaviors,
         macros,
+        firmware: Firmware::Zmk,
+        matrix: Vec::new(),
     })
 }
 
-/// Reads and parses a keymap file
+/// Reads and parses a keymap file: ZMK `.keymap`, QMK `keymap.json` or QMK `keymap.c`
 pub fn load_keymap(path: &str) -> Result<Keymap, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("Error reading file: {e}"))?;
     let text = String::from_utf8_lossy(&bytes);
     // A UTF-8 byte order mark would sit in front of the first token
     let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    let lower = path.to_lowercase();
+    if lower.ends_with(".json") {
+        let info = crate::qmk::find_keyboard_info(path);
+        return crate::qmk::parse_json(text, Some(path), info.as_deref());
+    }
+    if lower.ends_with(".c") {
+        let info = crate::qmk::find_keyboard_info(path);
+        return crate::qmk::parse_c(text, Some(path), info.as_deref());
+    }
     parse(text, Some(path)).ok_or_else(|| "Failed to parse keymap file".to_string())
 }
 
 /// Removes C-style comments (// and /* */). Newlines inside block comments stay.
-fn remove_comments(data: &str) -> String {
+pub(crate) fn remove_comments(data: &str) -> String {
     let chars: Vec<char> = data.chars().collect();
     let n = chars.len();
     let mut out = String::with_capacity(data.len());
@@ -351,7 +389,7 @@ fn tokenize_bindings(input: &str) -> Vec<String> {
     tokens
 }
 
-fn calculate_keys_per_row(bindings: &[KeyBinding]) -> Vec<usize> {
+pub(crate) fn calculate_keys_per_row(bindings: &[KeyBinding]) -> Vec<usize> {
     let Some(max_row) = bindings.iter().map(|b| b.row).max() else {
         return vec![0];
     };
@@ -433,7 +471,7 @@ fn detect_split_layout(keymap_content: &str) -> bool {
 
 // MARK: - Display text
 
-fn parse_display_text(raw_code: &str) -> String {
+pub(crate) fn parse_display_text(raw_code: &str) -> String {
     let code = raw_code.strip_prefix('&').unwrap_or(raw_code);
     let parts: Vec<&str> = code.split(' ').filter(|p| !p.is_empty()).collect();
     let Some(&behavior) = parts.first() else {
@@ -594,7 +632,7 @@ const SPECIAL_KEYS: &[(&str, &str)] = &[
     ("N9", "9"),
 ];
 
-fn format_key(key: &str) -> String {
+pub(crate) fn format_key(key: &str) -> String {
     // What the key types in the active layout: € for LS(LA(N2)), Ö for SEMI
     // in the German layout
     if let Some(typed) = KeyCharacters::typed_character(key) {
@@ -681,7 +719,7 @@ fn modifier_style() -> ModifierStyle {
     }
 }
 
-fn format_modifier(modifier: &str) -> String {
+pub(crate) fn format_modifier(modifier: &str) -> String {
     format_modifier_in(modifier, modifier_style())
 }
 

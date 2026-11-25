@@ -53,7 +53,9 @@ fn choose_file(app: AppHandle, hub: State<'_, Hub>) {
         .dialog()
         .file()
         .set_title("Choose your keymap")
+        .add_filter("Keymaps (ZMK, QMK)", &["keymap", "json", "c"])
         .add_filter("ZMK keymap", &["keymap"])
+        .add_filter("QMK keymap.json or keymap.c", &["json", "c"])
         .add_filter("All files", &["*"]);
     if let Some(dir) = start_dir {
         dialog = dialog.set_directory(dir);
@@ -188,7 +190,7 @@ fn open_with_default_app(path: &str) {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--hid-check") {
-        hid::check();
+        hid::check(args.iter().any(|a| a == "--qmk"));
         return;
     }
     let simulate = args.iter().any(|a| a == "--simulate") || std::env::var("ZMK_SIMULATE").is_ok();
@@ -197,7 +199,10 @@ fn main() {
     let file_arg = args
         .iter()
         .skip(1)
-        .find(|a| a.ends_with(".keymap"))
+        .find(|a| {
+            let a = a.to_lowercase();
+            a.ends_with(".keymap") || a.ends_with(".json") || a.ends_with(".c")
+        })
         .cloned();
 
     let builder = tauri::Builder::default();

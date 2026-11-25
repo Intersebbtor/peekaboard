@@ -227,6 +227,27 @@ impl Inner {
         }
     }
 
+    /// A key event as the keyboard sends it (matrix position on QMK). A key
+    /// the keymap cannot place is not highlighted, but counts for the typing speed.
+    pub fn set_matrix_key(&mut self, row: u8, col: u8, pressed: bool) -> bool {
+        match self.keymap.as_ref().and_then(|k| k.position_of(row, col)) {
+            Some(position) => self.set_key(position, pressed),
+            None if pressed => {
+                let now = self.now();
+                self.wpm_meter.record_press(now);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The loaded keymap is a QMK one: the keyboard needs a subscription to send
+    pub fn is_qmk(&self) -> bool {
+        self.keymap
+            .as_ref()
+            .is_some_and(|k| k.firmware == zmk_core::Firmware::Qmk)
+    }
+
     /// A press on the live layer that types something
     fn count_for_wpm(&mut self, position: usize) -> bool {
         let layer = self
@@ -398,5 +419,46 @@ mod tests {
         assert_eq!(s.keymap.as_ref().unwrap().layers[0].bindings[1].name, None);
         s.set_key_name("Q", Some(""));
         assert_eq!(s.keymap.as_ref().unwrap().layers[0].bindings[0].name, None);
+    }
+
+    #[test]
+    fn zmk_key_events_carry_the_binding_index() {
+        let (mut s, path) = state("zmk-matrix");
+        s.open_path(&path);
+        assert!(!s.is_qmk());
+        s.set_matrix_key(0, 1, true);
+        assert_eq!(s.pressed.iter().copied().collect::<Vec<_>>(), vec![1]);
+    }
+
+    #[test]
+    fn qmk_keymaps_load_and_place_keys_by_matrix() {
+        let (mut s, path) = state("qmk");
+        let dir = PathBuf::from(&path).parent().unwrap().to_path_buf();
+        std::fs::write(
+            dir.join("info.json"),
+            r#"{"layouts": {"LAYOUT": {"layout": [
+                {"matrix": [0, 0], "x": 0, "y": 0},
+                {"matrix": [1, 0], "x": 1, "y": 0},
+                {"matrix": [1, 1], "x": 2, "y": 0}
+            ]}}}"#,
+        )
+        .unwrap();
+        let json = dir.join("keymap.json");
+        std::fs::write(
+            &json,
+            r#"{"layout": "LAYOUT", "layers": [["KC_A", "MO(1)", "KC_B"], ["_______", "_______", "KC_LEFT"]]}"#,
+        )
+        .unwrap();
+
+        assert!(s.open_path(json.to_str().unwrap()));
+        assert!(s.is_qmk());
+        assert_eq!(s.layer_count(), 2);
+        s.apply_live_layer(0);
+        assert!(s.set_matrix_key(1, 1, true), "KC_B types");
+        assert_eq!(s.pressed.iter().copied().collect::<Vec<_>>(), vec![2]);
+        assert!(!s.set_matrix_key(1, 0, true), "MO(1) does not");
+        // Unknown matrix position: nothing lights up, but it counts
+        assert!(s.set_matrix_key(7, 7, true));
+        assert_eq!(s.pressed.len(), 2);
     }
 }

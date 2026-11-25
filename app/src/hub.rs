@@ -140,6 +140,10 @@ impl Hub {
                 self.lock().set_key(position, pressed);
                 self.emit_live();
             }
+            LayerPacket::MatrixKeyEvent { row, col, pressed } => {
+                self.lock().set_matrix_key(row, col, pressed);
+                self.emit_live();
+            }
             // The Studio tunnel (reading the keymap from the keyboard) is not in this version
             LayerPacket::StudioChunk(_) => {}
         }

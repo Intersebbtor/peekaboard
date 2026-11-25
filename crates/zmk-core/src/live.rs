@@ -1,6 +1,12 @@
-//! Live layer: decoding the Raw HID packets of the zmk-keypeek-layer-notifier
-//! firmware module (usage page 0xFF60, usage 0x61), and choosing which layer
-//! the views show. Port of `LiveLayer.swift`.
+//! Live layer: decoding the Raw HID packets of the KeyPeek firmware modules
+//! (usage page 0xFF60, usage 0x61), and choosing which layer the views show.
+//! Port of `LiveLayer.swift`, extended for QMK.
+//!
+//! The packets are the same for both firmwares:
+//! - ZMK: [zmk-keypeek-layer-notifier](https://github.com/srwi/zmk-keypeek-layer-notifier)
+//! - QMK: the `keypeek_layer_notify` module of
+//!   [KeyPeek](https://github.com/srwi/keypeek), which only sends while the
+//!   host keeps a subscription alive (see [`QMK_SUBSCRIBE`])
 
 use serde::Serialize;
 
@@ -13,6 +19,11 @@ pub const KEY_EVENT_MARKER: u8 = 0xF1;
 /// The ZMK Studio RPC tunnel of the same module
 pub const STUDIO_MARKER: u8 = 0xF2;
 
+/// QMK: sent about once a second, keeps the keyboard sending layer and key events
+pub const QMK_SUBSCRIBE: [u8; 2] = [0xC0, 0xA1];
+/// QMK: stops the events again
+pub const QMK_UNSUBSCRIBE: [u8; 2] = [0xC0, 0xA0];
+
 /// A Raw HID packet sent by the firmware module
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerPacket {
@@ -21,8 +32,12 @@ pub enum LayerPacket {
         default_layers: u32,
         active_layers: u32,
     },
-    /// The key at `position` was pressed or released
+    /// The key with this binding index was pressed or released
     KeyEvent { position: usize, pressed: bool },
+    /// A key event as the keyboard sends it: QMK sends the switch matrix
+    /// position, ZMK row 0 and the binding index as the column.
+    /// [`crate::Keymap::position_of`] turns it into a binding index.
+    MatrixKeyEvent { row: u8, col: u8, pressed: bool },
     /// A chunk of the ZMK Studio RPC stream
     StudioChunk(Vec<u8>),
 }
@@ -30,25 +45,40 @@ pub enum LayerPacket {
 impl LayerPacket {
     /// Decodes one report. Returns None for unknown or truncated reports.
     pub fn decode(bytes: &[u8]) -> Option<LayerPacket> {
+        // Some platforms hand over the report ID 0 in front of the data
+        let bytes = match bytes {
+            [0, marker, ..]
+                if matches!(
+                    *marker,
+                    LAYER_STATE_MARKER | KEY_EVENT_MARKER | STUDIO_MARKER
+                ) =>
+            {
+                &bytes[1..]
+            }
+            _ => bytes,
+        };
         match *bytes.first()? {
             LAYER_STATE_MARKER => {
-                // [0xFF, 0x04, default mask (u32 LE), active mask (u32 LE)]
-                if bytes.len() < 10 {
+                // [0xFF, size, default mask, active mask], masks little endian and
+                // `size` bytes long: 4 on ZMK, sizeof(layer_state_t) on QMK (1, 2 or 4)
+                let size = *bytes.get(1)? as usize;
+                if size == 0 || size > 4 || bytes.len() < 2 + 2 * size {
                     return None;
                 }
                 Some(LayerPacket::LayerState {
-                    default_layers: u32_le(bytes, 2),
-                    active_layers: u32_le(bytes, 6),
+                    default_layers: le(&bytes[2..2 + size]),
+                    active_layers: le(&bytes[2 + size..2 + 2 * size]),
                 })
             }
             KEY_EVENT_MARKER => {
-                // [0xF1, 0x00, position, pressed]
+                // [0xF1, row, col, pressed]
                 if bytes.len() < 4 {
                     return None;
                 }
-                Some(LayerPacket::KeyEvent {
-                    position: bytes[2] as usize,
-                    pressed: bytes[3] == 1,
+                Some(LayerPacket::MatrixKeyEvent {
+                    row: bytes[1],
+                    col: bytes[2],
+                    pressed: bytes[3] != 0,
                 })
             }
             STUDIO_MARKER => {
@@ -63,8 +93,12 @@ impl LayerPacket {
     }
 }
 
-fn u32_le(bytes: &[u8], at: usize) -> u32 {
-    u32::from_le_bytes([bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]])
+/// Little-endian number of up to four bytes
+fn le(bytes: &[u8]) -> u32 {
+    bytes
+        .iter()
+        .rev()
+        .fold(0u32, |acc, &b| (acc << 8) | b as u32)
 }
 
 /// The highest active layer is the one ZMK looks up keys on first, so it is
@@ -160,16 +194,71 @@ mod tests {
     fn decode_key_event() {
         assert_eq!(
             LayerPacket::decode(&report(&[0xF1, 0x00, 14, 1])),
-            Some(LayerPacket::KeyEvent {
-                position: 14,
+            Some(LayerPacket::MatrixKeyEvent {
+                row: 0,
+                col: 14,
                 pressed: true
             })
         );
         assert_eq!(
             LayerPacket::decode(&report(&[0xF1, 0x00, 14, 0])),
-            Some(LayerPacket::KeyEvent {
-                position: 14,
+            Some(LayerPacket::MatrixKeyEvent {
+                row: 0,
+                col: 14,
                 pressed: false
+            })
+        );
+    }
+
+    #[test]
+    fn decode_qmk_key_event_by_matrix_position() {
+        assert_eq!(
+            LayerPacket::decode(&report(&[0xF1, 3, 4, 1])),
+            Some(LayerPacket::MatrixKeyEvent {
+                row: 3,
+                col: 4,
+                pressed: true
+            })
+        );
+    }
+
+    #[test]
+    fn decode_qmk_layer_state_with_16_bit_masks() {
+        // QMK's default layer_state_t is 16 bits: size 2
+        assert_eq!(
+            LayerPacket::decode(&report(&[0xFF, 0x02, 0x01, 0x00, 0x09, 0x80])),
+            Some(LayerPacket::LayerState {
+                default_layers: 0x1,
+                active_layers: 0x8009
+            })
+        );
+        // LAYER_STATE_8BIT: size 1
+        assert_eq!(
+            LayerPacket::decode(&report(&[0xFF, 0x01, 0x01, 0x04])),
+            Some(LayerPacket::LayerState {
+                default_layers: 0x1,
+                active_layers: 0x4
+            })
+        );
+        assert_eq!(LayerPacket::decode(&report(&[0xFF, 0x05])), None);
+        assert_eq!(LayerPacket::decode(&report(&[0xFF, 0x00])), None);
+    }
+
+    #[test]
+    fn skips_a_leading_report_id() {
+        assert_eq!(
+            LayerPacket::decode(&[0x00, 0xF1, 3, 4, 1]),
+            Some(LayerPacket::MatrixKeyEvent {
+                row: 3,
+                col: 4,
+                pressed: true
+            })
+        );
+        assert_eq!(
+            LayerPacket::decode(&[0x00, 0xFF, 0x01, 0x01, 0x02]),
+            Some(LayerPacket::LayerState {
+                default_layers: 0x1,
+                active_layers: 0x2
             })
         );
     }

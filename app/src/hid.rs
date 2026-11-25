@@ -1,14 +1,14 @@
-//! Live layer from the keyboard: Raw HID packets of the zmk-keypeek-layer-
-//! notifier firmware module (usage page 0xFF60, usage 0x61), over USB or
+//! Live layer from the keyboard: Raw HID packets of the KeyPeek firmware
+//! modules for ZMK and QMK (usage page 0xFF60, usage 0x61), over USB or
 //! Bluetooth. The vendor usage page means no special permission is needed.
 //!
 //! `--simulate` (or ZMK_SIMULATE=1) fakes a keyboard instead, to try the app
-//! without hardware.
+//! without hardware. It works with ZMK and QMK keymaps alike.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use hidapi::HidApi;
-use zmk_core::live::{USAGE, USAGE_PAGE};
+use hidapi::{HidApi, HidDevice};
+use zmk_core::live::{QMK_SUBSCRIBE, QMK_UNSUBSCRIBE, USAGE, USAGE_PAGE};
 use zmk_core::LayerPacket;
 
 use crate::hub::Hub;
@@ -16,7 +16,8 @@ use crate::hub::Hub;
 /// `--hid-check`: lists every HID device the system shows, then listens to the
 /// live-layer device for ten seconds. Prints to stdout, for finding out why a
 /// keyboard is not picked up (on Windows: pipe it, e.g. `| Out-String`).
-pub fn check() {
+/// `qmk`: keep the QMK subscription alive while listening (`--hid-check --qmk`).
+pub fn check(qmk: bool) {
     let api = match HidApi::new() {
         Ok(api) => api,
         Err(e) => {
@@ -69,7 +70,10 @@ pub fn check() {
     let start = std::time::Instant::now();
     let mut buffer = [0u8; 64];
     let mut packets = 0;
+    let mut subscription = QmkSubscription::default();
+    let handles: Vec<&HidDevice> = devices.iter().map(|(_, d)| d).collect();
     while start.elapsed() < Duration::from_secs(10) {
+        subscription.keep_alive(&handles, qmk);
         for (via, device) in &devices {
             match device.read_timeout(&mut buffer, 50) {
                 Ok(0) => {}
@@ -140,7 +144,9 @@ fn run_hid(hub: &Hub) {
 
             let mut buffer = [0u8; 64];
             let timeout = (250 / devices.len()).max(20) as i32;
+            let mut subscription = QmkSubscription::default();
             'read: loop {
+                subscription.keep_alive(&devices, hub.lock().is_qmk());
                 for device in &devices {
                     match device.read_timeout(&mut buffer, timeout) {
                         Ok(0) => {}
@@ -164,6 +170,42 @@ fn run_hid(hub: &Hub) {
         }
 
         std::thread::sleep(Duration::from_secs(1));
+    }
+}
+
+/// QMK's keypeek module only sends while the host renews a subscription about
+/// once a second. ZMK sends without one, so nothing is written to a ZMK keyboard.
+#[derive(Default)]
+struct QmkSubscription {
+    last_sent: Option<Instant>,
+}
+
+impl QmkSubscription {
+    fn keep_alive<D: std::borrow::Borrow<HidDevice>>(&mut self, devices: &[D], is_qmk: bool) {
+        match (is_qmk, self.last_sent) {
+            (true, Some(sent)) if sent.elapsed() < Duration::from_millis(900) => {}
+            (true, _) => {
+                Self::send(devices, QMK_SUBSCRIBE);
+                self.last_sent = Some(Instant::now());
+            }
+            // A ZMK keymap was loaded after a QMK one
+            (false, Some(_)) => {
+                Self::send(devices, QMK_UNSUBSCRIBE);
+                self.last_sent = None;
+            }
+            (false, None) => {}
+        }
+    }
+
+    fn send<D: std::borrow::Borrow<HidDevice>>(devices: &[D], message: [u8; 2]) {
+        // Report ID 0, then the 32-byte raw HID report
+        let mut report = [0u8; 33];
+        report[1..3].copy_from_slice(&message);
+        for device in devices {
+            if let Err(e) = device.borrow().write(&report) {
+                eprintln!("[LiveLayer] Could not send the QMK subscription: {e}");
+            }
+        }
     }
 }
 
